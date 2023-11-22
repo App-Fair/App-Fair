@@ -1,5 +1,30 @@
 {
   "sourceLanguage" : "en",
-  "strings" : {},
+  "strings" : {
+    "App %lld" : {
+
+    },
+    "App Fair" : {
+
+    },
+    "Apps" : {
+
+    },
+    "Navigation" : {
+
+    },
+    "Navigation %lld" : {
+
+    },
+    "Option" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Welcome to the App Fair!" : {
+
+    }
+  },
   "version" : "1.0"
 }

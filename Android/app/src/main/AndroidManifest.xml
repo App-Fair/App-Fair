@@ -10,7 +10,7 @@
     <!-- <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> -->
 
     <application
-        android:label="${PRODUCT_NAME}"
+        android:label="The App Fair"
         android:name=".AndroidAppMain"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher">

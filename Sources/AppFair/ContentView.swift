@@ -13,27 +13,27 @@ public struct ContentView: View {
     public var body: some View {
         TabView {
             VStack {
-                Text("Welcome Skipper!")
+                Text("Welcome to the App Fair!")
                 Image(systemName: "heart.fill")
                     .foregroundColor(.red)
             }
             .font(.largeTitle)
-            .tabItem { Label("Welcome", systemImage: "heart.fill") }
+            .tabItem { Label("App Fair", systemImage: "house.fill") }
 
             NavigationStack {
                 List {
                     ForEach(1..<1_000) { i in
-                        NavigationLink("Home \(i)", value: i)
+                        NavigationLink("App \(i)", value: i)
                     }
                 }
                 .navigationTitle("Navigation")
                 .navigationDestination(for: Int.self) { i in
-                    Text("Destination \(i)")
+                    Text("App \(i)")
                         .font(.title)
                         .navigationTitle("Navigation \(i)")
                 }
             }
-            .tabItem { Label("Home", systemImage: "house.fill") }
+            .tabItem { Label("Apps", systemImage: "list.bullet") }
 
             Form {
                 Text("Settings")
