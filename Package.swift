@@ -29,9 +29,9 @@ let package = Package(
     targets: [
         .target(name: "AppFair", dependencies: ["AppManagement", .product(name: "SkipUI", package: "skip-ui"), .product(name: "SkipMotion", package: "skip-motion"), .product(name: "SkipWeb", package: "skip-web")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "AppFairTests", dependencies: ["AppFair", .product(name: "SkipTest", package: "skip")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-        .target(name: "AppManagement", dependencies: ["AppLibrary", .product(name: "SkipModel", package: "skip-model")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .target(name: "AppManagement", dependencies: ["AppLibrary"], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "AppManagementTests", dependencies: ["AppManagement", .product(name: "SkipTest", package: "skip")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-        .target(name: "AppLibrary", dependencies: ["AppDistribution", .product(name: "SkipSQL", package: "skip-sql")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .target(name: "AppLibrary", dependencies: ["AppDistribution", .product(name: "SkipSQL", package: "skip-sql"), .product(name: "SkipModel", package: "skip-model")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "AppLibraryTests", dependencies: ["AppLibrary", .product(name: "SkipTest", package: "skip")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .target(name: "AppDistribution", dependencies: ["AppSupport", .product(name: "SkipXML", package: "skip-xml")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "AppDistributionTests", dependencies: ["AppDistribution", .product(name: "SkipTest", package: "skip")], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),

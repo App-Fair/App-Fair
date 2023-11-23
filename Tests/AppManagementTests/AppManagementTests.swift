@@ -5,23 +5,37 @@
 import XCTest
 import OSLog
 import Foundation
+import SkipModel
+import AppLibrary
 @testable import AppManagement
 
 let logger: Logger = Logger(subsystem: "AppManagement", category: "Tests")
 
 @available(macOS 13, *)
 final class AppManagementTests: XCTestCase {
-    func testAppManagement() throws {
-        logger.log("running testAppManagement")
-        XCTAssertEqual(1 + 2, 3, "basic test")
-        
-        // load the TestData.json file from the Resources folder and decode it into a struct
-        let resourceURL: URL = try XCTUnwrap(Bundle.module.url(forResource: "TestData", withExtension: "json"))
-        let testData = try JSONDecoder().decode(TestData.self, from: Data(contentsOf: resourceURL))
-        XCTAssertEqual("AppManagement", testData.testModuleName)
+    func testAppManagement() async throws {
+        let viewModel = ViewModel()
+        await viewModel.getApps()
     }
 }
 
-struct TestData : Codable, Hashable {
-    var testModuleName: String
+// Define a model that obtains a list of managed apps.
+final class ViewModel : ObservableObject {
+    @Published var content: [Content] = []
+
+    enum Content {
+        case managedApp(ManagedApp)
+        case developerContent(title: String, action: () -> Void)
+    }
+
+
+    func getApps() async {
+        do {
+            for try await result in ManagedAppLibrary.currentDistributor.availableApps {
+                content = try result.get().map({ Content.managedApp($0) })
+            }
+        } catch {
+            // Handle errors here.
+        }
+    }
 }
