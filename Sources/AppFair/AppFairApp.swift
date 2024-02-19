@@ -14,6 +14,7 @@ let androidSDK = ProcessInfo.processInfo.environment["android.os.Build.VERSION.S
 /// The shared top-level view for the app, loaded from the platform-specific App delegates below.
 ///
 /// The default implementation merely loads the `ContentView` for the app and logs a message.
+@available(iOS 17.2, *)
 public struct RootView : View {
     public init() {
     }
@@ -33,6 +34,7 @@ public protocol AppFairApp : App {
 
 /// The entry point to the AppFair app.
 /// The concrete implementation is in the AppFairApp module.
+@available(iOS 17.2, *)
 public extension AppFairApp {
     var body: some Scene {
         WindowGroup {

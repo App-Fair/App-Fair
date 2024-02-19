@@ -4,6 +4,7 @@
 
 import SwiftUI
 
+@available(iOS 17.2, *)
 public struct ContentView: View {
     @AppStorage("setting") var setting = true
 
@@ -12,6 +13,9 @@ public struct ContentView: View {
 
     public var body: some View {
         TabView {
+            AppList()
+                .tabItem { Label("Apps", systemImage: "list.bullet") }
+
             VStack {
                 Text("Welcome to the App Fair!")
                 Image(systemName: "heart.fill")
@@ -19,21 +23,6 @@ public struct ContentView: View {
             }
             .font(.largeTitle)
             .tabItem { Label("App Fair", systemImage: "house.fill") }
-
-            NavigationStack {
-                List {
-                    ForEach(1..<1_000) { i in
-                        NavigationLink("App \(i)", value: i)
-                    }
-                }
-                .navigationTitle("Navigation")
-                .navigationDestination(for: Int.self) { i in
-                    Text("App \(i)")
-                        .font(.title)
-                        .navigationTitle("Navigation \(i)")
-                }
-            }
-            .tabItem { Label("Apps", systemImage: "list.bullet") }
 
             Form {
                 Text("Settings")
@@ -44,3 +33,42 @@ public struct ContentView: View {
         }
     }
 }
+
+@available(iOS 17.2, *)
+public struct AppList: View {
+    @State var viewModel = ViewModel()
+
+    public init() {
+    }
+
+    public var body: some View {
+        NavigationStack {
+        }
+        .task {
+        }
+    }
+
+    @ViewBuilder func appDetailView(id: String) -> some View {
+        VStack {
+            Text("APP DETAIL")
+        }
+    }
+}
+
+
+/// Defines a model that obtains a list of managed apps.
+@Observable public final class ViewModel {
+//    @Published var content: [ManagedApp] = []
+//    @Published var error: Error? = nil
+//
+//    @MainActor func getApps() async {
+//        do {
+//            for try await result in ManagedAppLibrary.currentDistributor.availableApps {
+//                self.content = try result.get()
+//            }
+//        } catch {
+//            self.error = error
+//        }
+//    }
+}
+

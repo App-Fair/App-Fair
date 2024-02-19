@@ -6,11 +6,13 @@ import Foundation
 import OSLog
 import Observation
 import SkipSQL
-
 let logger: Logger = Logger(subsystem: "app.libary", category: "AppLibrary")
 
 /// A type representing an app.
 public struct ManagedApp : Identifiable, Sendable, Encodable {
+    //public typealias Language = Locale.Language
+    public typealias Language = String
+
     /// The stable identity of the entity associated with this instance.
     public let id: String
 
@@ -21,17 +23,12 @@ public struct ManagedApp : Identifiable, Sendable, Encodable {
     public let subtitle: String?
 
     /// The description of the app
-    //public let description: String?
-
-    /// A URL for the icon of the app. The icon will scale to fit the given size.
-    public func iconURL(fitting: CGSize) -> URL? {
-        fatalError("TODO")
+    public var description: String? {
+        // note: this can't be the stored property because it conflicts on the Kotlin side
+        appDescription
     }
 
-    /// An Array of URLs for the screenshots of the app. The screenshots will scale to fit the given size.
-    public func screenshotURLs(fitting: CGSize) -> [URL] {
-        fatalError("TODO")
-    }
+    private let appDescription: String?
 
     /// The platform of the app
     public let platform: Platform
@@ -40,10 +37,10 @@ public struct ManagedApp : Identifiable, Sendable, Encodable {
     public let requirements: String?
 
     /// The languages supported by the app
-    //public let languages: [Locale.Language]
+    public let languages: [Language]
 
     /// The language of app metadata
-    //public let metadataLanguage: Locale.Language?
+    public let metadataLanguage: Language?
 
     /// The URL of app developer’s website
     public let developerWebsite: URL?
@@ -75,27 +72,46 @@ public struct ManagedApp : Identifiable, Sendable, Encodable {
     /// The size of the app in bytes
     public let fileSize: UInt64?
 
-    /// A value representing the platform for a ManagedApp
-    public struct Platform : Hashable, Sendable, Codable {
-        public let identifier: String
+    /// A URL for the icon of the app. The icon will scale to fit the given size.
+    public func iconURL(fitting: CGSize) -> URL? {
+        fatalError("TODO")
+    }
 
-        /// The Platform representing iOS
-        public static let iOS: ManagedApp.Platform = Platform(identifier: "ios")
+    /// An Array of URLs for the screenshots of the app. The screenshots will scale to fit the given size.
+    public func screenshotURLs(fitting: CGSize) -> [URL] {
+        fatalError("TODO")
+    }
 
-        /// The Platform representing macOS
-        public static var macOS: ManagedApp.Platform = Platform(identifier: "macos")
-
-        /// A textual representation of this instance.
-        public var description: String { identifier }
+    public init(id: String, name: String, subtitle: String? = nil, description: String? = nil, platform: Platform, requirements: String? = nil, languages: [Language] = [], metadataLanguage: Language? = nil, developerWebsite: URL? = nil, genres: [String] = [], contentRating: String? = nil, privacyPolicy: URL? = nil, copyright: String? = nil, licenseAgreement: URL? = nil, version: String? = nil, releaseNotes: String? = nil, releaseDate: Date? = nil, fileSize: UInt64? = nil) {
+        self.id = id
+        self.name = name
+        self.subtitle = subtitle
+        self.appDescription = description
+        self.platform = platform
+        self.requirements = requirements
+        self.languages = languages
+        self.metadataLanguage = metadataLanguage
+        self.developerWebsite = developerWebsite
+        self.genres = genres
+        self.contentRating = contentRating
+        self.privacyPolicy = privacyPolicy
+        self.copyright = copyright
+        self.licenseAgreement = licenseAgreement
+        self.version = version
+        self.releaseNotes = releaseNotes
+        self.releaseDate = releaseDate
+        self.fileSize = fileSize
     }
 
 //    public enum CodingKeys : String, CodingKey, CaseIterable {
 //        case id
-//        case name
+//        case name // Conflicting declarations: enum entry name, public final val name: String
 //        case subtitle
-//        case description
+//        case description // Conflicting declarations: public open val description: String, enum entry description
 //        case platform
 //        case requirements
+//        case languages
+//        case metadataLanguage
 //        case developerWebsite
 //        case genres
 //        case contentRating
@@ -109,6 +125,21 @@ public struct ManagedApp : Identifiable, Sendable, Encodable {
 //    }
 
 }
+
+/// A value representing the platform for a ManagedApp
+public struct Platform : Hashable, Sendable, Codable {
+    public let identifier: String
+
+    /// The Platform representing iOS
+    public static let iOS: Platform = Platform(identifier: "ios")
+
+    /// The Platform representing macOS
+    public static var macOS: Platform = Platform(identifier: "macos")
+
+    /// A textual representation of this instance.
+    public var description: String { identifier }
+}
+
 
 
 //extension ManagedApp {
