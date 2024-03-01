@@ -38,7 +38,7 @@ let package = Package(
 
         .target(name: "AppLibrary", dependencies: [
             .product(name: "SkipModel", package: "skip-model"),
-            .product(name: "SkipSQL", package: "skip-sql"),
+            .product(name: "SkipSQLPlus", package: "skip-sql"),
             .product(name: "SkipScript", package: "skip-script"),
             .product(name: "SkipXML", package: "skip-xml"),
             .product(name: "SkipZip", package: "skip-zip"),
