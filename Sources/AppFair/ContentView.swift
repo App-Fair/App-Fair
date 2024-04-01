@@ -1,10 +1,14 @@
 // This is free software: you can redistribute and/or modify it
-// under the terms of the GNU Lesser General Public License 3.0
+// under the terms of the GNU General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
-
 import SwiftUI
+#if canImport(MarketplaceKitXXX) // TODO: re-enable once com.apple.developer.marketplace.app-installation is granted
+import MarketplaceKit
+#else
+import AppLibrary
+#endif
 
-@available(iOS 17.2, *)
+@available(iOS 17.4, *) 
 public struct ContentView: View {
     @AppStorage("setting") var setting = true
 
@@ -34,17 +38,35 @@ public struct ContentView: View {
     }
 }
 
-@available(iOS 17.2, *)
-public struct AppList: View {
+@available(iOS 17.4, *)
+@MainActor public struct AppList: View {
+    let library = AppLibrary.current
+
     @State var viewModel = ViewModel()
 
     public init() {
     }
 
     public var body: some View {
-        NavigationStack {
-        }
-        .task {
+        if library.isLoading {
+            VStack {
+                Text("Loading App Library")
+                    .font(.title)
+                ProgressView()
+            }
+        } else {
+            NavigationStack {
+                Section("Available Apps") {
+                    ForEach(library.installedApps.sorted(using: SortDescriptor(\.id))) { app in
+                        AppLibraryRow(app: app)
+                    }
+                }
+                Section("Installed Apps") {
+                    ForEach(library.installedApps.sorted(using: SortDescriptor(\.id))) { app in
+                        AppLibraryRow(app: app)
+                    }
+                }
+            }
         }
     }
 
@@ -55,9 +77,22 @@ public struct AppList: View {
     }
 }
 
+@available(iOS 17.4, *)
+public struct AppLibraryRow: View {
+    let app: AppLibrary.App
+
+    public var body: some View {
+        Text(app.id.description)
+    }
+
+}
+
 
 /// Defines a model that obtains a list of managed apps.
-@Observable public final class ViewModel {
+@available(iOS 17.4, *)
+@MainActor @Observable public final class ViewModel {
+    let library = AppLibrary.current
+
 //    @Published var content: [ManagedApp] = []
 //    @Published var error: Error? = nil
 //

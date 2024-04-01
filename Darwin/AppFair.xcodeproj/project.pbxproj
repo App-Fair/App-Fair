@@ -174,7 +174,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -e";
-			shellScript = "if [ \"${SKIP_ZERO}\" != \"\" ]; then\n\techo \"note: skipping skip due to SKIP_ZERO\"\n\texit 0\nfi\nif [ \"${ENABLE_PREVIEWS}\" == \"YES\" ]; then\n    echo \"note: skipping skip due to ENABLE_PREVIEWS\"\n    exit 0\nfi\nif [ \"${ACTION}\" = \"install\" ]; then\n\tSKIP_ACTION=\"build\"\nelse\n\tSKIP_ACTION=\"${SKIP_ACTION:-launch}\"\nfi\nPATH=${BUILD_ROOT}/Debug:${BUILD_ROOT}/../../SourcePackages/artifacts/skip/skip/skip.artifactbundle/macos:${PATH}:${HOMEBREW_PREFIX:-/opt/homebrew}/bin\necho \"note: running gradle build with: $(which skip) gradle -p ${PWD}/../Android ${SKIP_ACTION:-launch}${CONFIGURATION:-Debug}\"\n### skip gradle -p ../Android ${SKIP_ACTION:-launch}${CONFIGURATION:-Debug}\necho \"warning: SKIPPED running gradle build with: $(which skip) gradle -p ${PWD}/../Android ${SKIP_ACTION:-launch}${CONFIGURATION:-Debug}\"\n";
+			shellScript = "if [ \"${SKIP_ZERO}\" != \"\" ]; then\n\techo \"note: skipping skip due to SKIP_ZERO\"\n\texit 0\nfi\nif [ \"${ENABLE_PREVIEWS}\" == \"YES\" ]; then\n    echo \"note: skipping skip due to ENABLE_PREVIEWS\"\n    exit 0\nfi\nif [ \"${ACTION}\" = \"install\" ]; then\n\tSKIP_ACTION=\"build\"\nelse\n\tSKIP_ACTION=\"${SKIP_ACTION:-launch}\"\nfi\nPATH=${BUILD_ROOT}/Debug:${BUILD_ROOT}/../../SourcePackages/artifacts/skip/skip/skip.artifactbundle/macos:${PATH}:${HOMEBREW_PREFIX:-/opt/homebrew}/bin\necho \"note: running gradle build with: $(which skip) gradle -p ${PWD}/../Android ${SKIP_ACTION:-launch}${CONFIGURATION:-Debug}\"\n### skip gradle -p ../Android ${SKIP_ACTION:-launch}${CONFIGURATION:-Debug}\necho \"warning: skipped running on Android\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -214,7 +214,7 @@
 			buildSettings = {
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "App Fair";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				SDKROOT = auto;
@@ -230,7 +230,7 @@
 			buildSettings = {
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "App Fair";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				SDKROOT = auto;
@@ -246,7 +246,7 @@
 			buildSettings = {
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "App Fair";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				SDKROOT = auto;

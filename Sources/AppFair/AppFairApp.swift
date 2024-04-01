@@ -1,7 +1,6 @@
 // This is free software: you can redistribute and/or modify it
-// under the terms of the GNU Lesser General Public License 3.0
+// under the terms of the GNU General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
-
 import Foundation
 import OSLog
 import SwiftUI
@@ -14,7 +13,7 @@ let androidSDK = ProcessInfo.processInfo.environment["android.os.Build.VERSION.S
 /// The shared top-level view for the app, loaded from the platform-specific App delegates below.
 ///
 /// The default implementation merely loads the `ContentView` for the app and logs a message.
-@available(iOS 17.2, *)
+@available(iOS 17.4, *)
 public struct RootView : View {
     public init() {
     }
@@ -34,7 +33,7 @@ public protocol AppFairApp : App {
 
 /// The entry point to the AppFair app.
 /// The concrete implementation is in the AppFairApp module.
-@available(iOS 17.2, *)
+@available(iOS 17.4, *)
 public extension AppFairApp {
     var body: some Scene {
         WindowGroup {
