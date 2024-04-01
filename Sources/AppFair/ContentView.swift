@@ -57,12 +57,12 @@ public struct ContentView: View {
         } else {
             NavigationStack {
                 Section("Available Apps") {
-                    ForEach(library.installedApps.sorted(using: SortDescriptor(\.id))) { app in
+                    ForEach(library.installedApps.sorted(by: { $0.id < $1.id })) { app in
                         AppLibraryRow(app: app)
                     }
                 }
                 Section("Installed Apps") {
-                    ForEach(library.installedApps.sorted(using: SortDescriptor(\.id))) { app in
+                    ForEach(library.installedApps.sorted(by: { $0.id < $1.id })) { app in
                         AppLibraryRow(app: app)
                     }
                 }

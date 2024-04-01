@@ -96,9 +96,9 @@ extension AppLibrary {
         public struct Installation : Sendable {
 
             /// The progress representing the download & installation of this app. It may be used to pause, resume, or cancel installation depending on the state of this object.
-            public var progress: Progress  {
-                fatalError("TODO")
-            }
+//            public var progress: Progress  {
+//                fatalError("TODO")
+//            }
         }
 
         @MainActor final public var installedMetadata: AppLibrary.App.Metadata?  {
@@ -186,7 +186,8 @@ public struct AppVersion : Sendable, CustomStringConvertible {
     public let appleVersionID: UInt64
 
     public init(appleItemID: AppleItemID, appleVersionID: UInt64)  {
-        fatalError("TODO")
+        self.appleItemID = appleItemID
+        self.appleVersionID = appleVersionID
     }
 
     /// A textual representation of this instance.
@@ -231,8 +232,11 @@ public struct AutomaticUpdate : Sendable {
 
     public let installVerificationToken: String
 
-    public init(appleItemID: AppleItemID, alternativeDistributionPackage: URL, account: String, installVerificationToken: String) {
-        fatalError("TODO")
+    init(appleItemID: AppleItemID, alternativeDistributionPackage: URL, account: String, installVerificationToken: String) {
+        self.appleItemID = appleItemID
+        self.alternativeDistributionPackage = alternativeDistributionPackage
+        self.account = account
+        self.installVerificationToken = installVerificationToken
     }
 }
 
@@ -329,7 +333,7 @@ public enum MarketplaceKitError : Error, CustomStringConvertible, Sendable, Coda
     case ratingRestricted
 
     /// The requested install requires more storage space than the device has available.
-    case insufficientStorageSpace(Measurement<UnitInformationStorage>)
+    //case insufficientStorageSpace(Measurement<UnitInformationStorage>)
 
     /// The requested install has no supported variant for this device.
     case noSupportedVariant
