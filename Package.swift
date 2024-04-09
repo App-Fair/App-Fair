@@ -7,7 +7,7 @@ import PackageDescription
 let package = Package(
     name: "appfair-app",
     defaultLocalization: "en",
-    platforms: [.iOS(.v17), .macOS(.v14)],
+    platforms: [.iOS(.v17), .macOS(.v13)],
     products: [
         .library(name: "AppFairApp", type: .dynamic, targets: ["AppFair"]),
     ],
