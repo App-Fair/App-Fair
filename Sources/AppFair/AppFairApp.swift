@@ -14,16 +14,21 @@ let androidSDK = ProcessInfo.processInfo.environment["android.os.Build.VERSION.S
 ///
 /// The default implementation merely loads the `ContentView` for the app and logs a message.
 @available(iOS 17.4, *)
+@available(macOS, unavailable)
 public struct RootView : View {
     public init() {
     }
 
     public var body: some View {
+        #if SKIP
+        EmptyView()
+        #else
         ContentView()
             .task {
                 logger.log("Welcome to Skip on \(androidSDK != nil ? "Android" : "iOS")!")
                 logger.warning("Skip app logs are viewable in the Xcode console for iOS; Android logs can be viewed in Studio or using adb logcat")
             }
+        #endif
     }
 }
 
@@ -34,6 +39,7 @@ public protocol AppFairApp : App {
 /// The entry point to the AppFair app.
 /// The concrete implementation is in the AppFairApp module.
 @available(iOS 17.4, *)
+@available(macOS, unavailable)
 public extension AppFairApp {
     var body: some Scene {
         WindowGroup {
