@@ -13,22 +13,20 @@ let androidSDK = ProcessInfo.processInfo.environment["android.os.Build.VERSION.S
 /// The shared top-level view for the app, loaded from the platform-specific App delegates below.
 ///
 /// The default implementation merely loads the `ContentView` for the app and logs a message.
-@available(iOS 17.4, *)
-@available(macOS, unavailable)
 public struct RootView : View {
     public init() {
     }
 
     public var body: some View {
-        #if SKIP
-        EmptyView()
-        #else
-        ContentView()
-            .task {
-                logger.log("Welcome to Skip on \(androidSDK != nil ? "Android" : "iOS")!")
-                logger.warning("Skip app logs are viewable in the Xcode console for iOS; Android logs can be viewed in Studio or using adb logcat")
-            }
-        #endif
+        if #available(iOS 17.4, *) {
+            ContentView()
+                .task {
+                    logger.log("Welcome to Skip on \(androidSDK != nil ? "Android" : "iOS")!")
+                    logger.warning("Skip app logs are viewable in the Xcode console for iOS; Android logs can be viewed in Studio or using adb logcat")
+                }
+        } else {
+            Text("OS Version Unsupported")
+        }
     }
 }
 

@@ -8,8 +8,6 @@ import MarketplaceKit
 import AppLibrary
 #endif
 
-@available(iOS 17.4, *) 
-@available(macOS, unavailable)
 public struct ContentView: View {
     @AppStorage("setting") var setting = true
 
@@ -17,9 +15,6 @@ public struct ContentView: View {
     }
 
     public var body: some View {
-        #if SKIP
-        EmptyView()
-        #else
         TabView {
             AppList()
                 .tabItem { Label("Apps", systemImage: "list.bullet") }
@@ -39,13 +34,9 @@ public struct ContentView: View {
             }
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
-        #endif
     }
 }
 
-#if !SKIP
-@available(iOS 17.4, macOS 14, *)
-@available(macOS, unavailable)
 @MainActor public struct AppList: View {
     let library = AppLibrary.current
 
@@ -84,8 +75,6 @@ public struct ContentView: View {
     }
 }
 
-@available(iOS 17.4, macOS 14, *)
-@available(macOS, unavailable)
 public struct AppLibraryRow: View {
     let app: AppLibrary.App
 
@@ -96,9 +85,6 @@ public struct AppLibraryRow: View {
 }
 
 
-/// Defines a model that obtains a list of managed apps.
-@available(iOS 17.4, macOS 14, *)
-@available(macOS, unavailable)
 @MainActor @Observable public final class ViewModel {
     let library = AppLibrary.current
 
@@ -115,5 +101,3 @@ public struct AppLibraryRow: View {
 //        }
 //    }
 }
-
-#endif
