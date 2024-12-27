@@ -16,7 +16,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
         targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get())
-        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = libs.versions.jvm.get().toString()
@@ -39,6 +38,10 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    lintOptions {
+        disable.add("Instantiatable")
     }
 
     // default signing configuration tries to load from keystore.properties
@@ -65,14 +68,4 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
-}
-
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    //coreLibraryDesugaring(libs.readium.shared)
-    //coreLibraryDesugaring(libs.readium.streamer)
-    //coreLibraryDesugaring(libs.readium.navigator)
-    //coreLibraryDesugaring(libs.readium.opds)
-    //coreLibraryDesugaring(libs.readium.lcp)
-
 }

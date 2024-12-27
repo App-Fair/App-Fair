@@ -82,7 +82,9 @@ struct AppDetailsView : View {
                 Text(errorMessage)
                     .foregroundStyle(.red)
             }
+            Spacer()
         }
+        .padding()
         .navigationTitle(app.name)
         .task {
             await fetchInfo()
@@ -99,6 +101,7 @@ struct AppDetailsView : View {
     }
 
     func fetch(url: URL) async throws -> String {
+        let start = Date.now
         logger.info("fetching URL: \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
         if let statusCode = (response as? HTTPURLResponse)?.statusCode {
@@ -111,7 +114,7 @@ struct AppDetailsView : View {
             throw AppError(localizedDescription: "Error fetching info: response was not a string")
         }
 
-        logger.info("fetched URL: \(url): \(str)")
+        logger.info("fetched URL: \(url) in \(Date.now.timeIntervalSince(start)): \(str)")
 
         return str
     }
