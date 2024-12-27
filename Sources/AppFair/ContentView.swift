@@ -68,16 +68,14 @@ struct AppDetailsView : View {
     let app: AppSource.App
     @Environment(AppSource.self) var source
     @Environment(ViewModel.self) var viewModel
-    @State var appDescription: String?
     @State var errorMessage: String?
 
     var body: some View {
         VStack {
             Text(app.name)
                 .font(.largeTitle)
-            if let appDescription = self.appDescription {
-                Text(appDescription)
-            }
+            AsyncText(url: app.subtitleURL())
+            AsyncText(url: app.descriptionURL())
             if let errorMessage = self.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
@@ -86,40 +84,55 @@ struct AppDetailsView : View {
         }
         .padding()
         .navigationTitle(app.name)
+    }
+
+//    @MainActor func fetchInfo() async {
+//        do {
+//            self.appDescription = try await fetch(url: app.descriptionURL(version: nil, locale: nil))
+//        } catch {
+//            logger.error("error fetching information for app: \(error)")
+//            self.errorMessage = error.localizedDescription
+//        }
+//    }
+}
+
+struct AsyncText : View {
+    let url: URL
+    @State var text: String?
+    @State var errorMessage: String?
+
+    var body: some View {
+        Text(text ?? errorMessage ?? "")
         .task {
-            await fetchInfo()
-        }
-    }
-
-    @MainActor func fetchInfo() async {
-        do {
-            self.appDescription = try await fetch(url: app.descriptionURL(version: nil, locale: nil))
-        } catch {
-            logger.error("error fetching information for app: \(error)")
-            self.errorMessage = error.localizedDescription
-        }
-    }
-
-    func fetch(url: URL) async throws -> String {
-        let start = Date.now
-        logger.info("fetching URL: \(url)")
-        let (data, response) = try await URLSession.shared.data(from: url)
-        if let statusCode = (response as? HTTPURLResponse)?.statusCode {
-            guard (200..<300).contains(statusCode) else {
-                throw AppError(localizedDescription: "Error fetching info: \(statusCode)")
+            do {
+                self.text = try await fetch(url: url)
+            } catch {
+                logger.error("error fetching information for app: \(error)")
+                self.errorMessage = error.localizedDescription
             }
         }
-
-        guard let str = String(data: data, encoding: .utf8) else {
-            throw AppError(localizedDescription: "Error fetching info: response was not a string")
-        }
-
-        logger.info("fetched URL: \(url) in \(Date.now.timeIntervalSince(start)): \(str)")
-
-        return str
     }
 }
 
 struct AppError : Error {
     var localizedDescription: String
+}
+
+private func fetch(url: URL) async throws -> String {
+    let start = Date.now
+    logger.info("fetching URL: \(url)")
+    let (data, response) = try await URLSession.shared.data(from: url)
+    if let statusCode = (response as? HTTPURLResponse)?.statusCode {
+        guard (200..<300).contains(statusCode) else {
+            throw AppError(localizedDescription: "Error fetching info: \(statusCode)")
+        }
+    }
+
+    guard let str = String(data: data, encoding: .utf8) else {
+        throw AppError(localizedDescription: "Error fetching info: response was not a string")
+    }
+
+    logger.info("fetched URL: \(url) in \(Date.now.timeIntervalSince(start)): \(str)")
+
+    return str
 }

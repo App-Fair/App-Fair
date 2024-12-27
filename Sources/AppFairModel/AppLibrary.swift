@@ -58,14 +58,19 @@ import SkipSQL
                 .appendingPathComponent("Darwin/Assets.xcassets/AppIcon.appiconset/AppIcon-29.png")
         }
 
-        public func descriptionURL(version: String?, locale: String?) -> URL {
+        public func subtitleURL(version: String? = nil, locale: String? = nil) -> URL {
+            fastlaneURL(version: version, locale: locale)
+                .appendingPathComponent("subtitle.txt")
+        }
+
+        public func descriptionURL(version: String? = nil, locale: String? = nil) -> URL {
             fastlaneURL(version: version, locale: locale)
                 .appendingPathComponent("description.txt")
         }
     }
 
     // https://developer.android.com/reference/android/content/pm/PackageInstaller.html
-    
+
     /*
     private fun installApk(uri: Uri) {
         val packageInstaller = context.packageManager.packageInstaller
