@@ -12,19 +12,19 @@ let package = Package(
         .library(name: "AppFairApp", type: .dynamic, targets: ["AppFair"]),
     ],
     dependencies: [
-        .package(url: "https://source.skip.tools/skip.git", from: "0.8.19"),
-        .package(url: "https://source.skip.tools/skip-foundation.git", from: "0.5.11"),
-        .package(url: "https://source.skip.tools/skip-ui.git", from: "0.5.10"),
-        //.package(url: "https://source.skip.tools/skip-motion.git", from: "0.2.0"),
-        .package(url: "https://source.skip.tools/skip-web.git", from: "0.1.0"),
-        .package(url: "https://source.skip.tools/skip-model.git", from: "0.5.4"),
-        .package(url: "https://source.skip.tools/skip-sql.git", from: "0.6.1"),
-        //.package(url: "https://source.skip.tools/skip-xml.git", from: "0.1.2"),
-        //.package(url: "https://source.skip.tools/skip-zip.git", from: "0.3.0"),
+        .package(url: "https://source.skip.tools/skip.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-model.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-web.git", "0.0.0"..<"2.0.0"),
+        .package(url: "https://source.skip.tools/skip-sql.git", "0.0.0"..<"2.0.0"),
+        //.package(url: "https://source.skip.tools/skip-motion.git", "0.0.0"..<"2.0.0"),
+        //.package(url: "https://source.skip.tools/skip-xml.git", "0.0.0"..<"2.0.0"),
+        //.package(url: "https://source.skip.tools/skip-zip.git", "0.0.0"..<"2.0.0"),
     ],
     targets: [
         .target(name: "AppFair", dependencies: [
-            "AppLibrary",
+            "AppFairModel",
             .product(name: "SkipUI", package: "skip-ui"),
             //.product(name: "SkipMotion", package: "skip-motion"),
             .product(name: "SkipWeb", package: "skip-web"),
@@ -34,15 +34,15 @@ let package = Package(
             .product(name: "SkipTest", package: "skip")
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
 
-        .target(name: "AppLibrary", dependencies: [
+        .target(name: "AppFairModel", dependencies: [
             .product(name: "SkipFoundation", package: "skip-foundation"),
             .product(name: "SkipModel", package: "skip-model"),
             .product(name: "SkipSQL", package: "skip-sql"),
             //.product(name: "SkipXML", package: "skip-xml"),
             //.product(name: "SkipZip", package: "skip-zip"),
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-        .testTarget(name: "AppLibraryTests", dependencies: [
-            "AppLibrary",
+        .testTarget(name: "AppFairModelTests", dependencies: [
+            "AppFairModel",
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )

@@ -2,14 +2,11 @@
 // under the terms of the GNU General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
 import SwiftUI
-#if canImport(MarketplaceKitXXX) // TODO: re-enable once com.apple.developer.marketplace.app-installation is granted
-import MarketplaceKit
-#else
-import AppLibrary
-#endif
+import AppFairModel
 
 public struct ContentView: View {
     @AppStorage("setting") var setting = true
+    @State var viewModel = ViewModel()
 
     public init() {
     }
@@ -34,70 +31,92 @@ public struct ContentView: View {
             }
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
+        .environment(AppSource.shared)
+        .environment(viewModel)
     }
 }
 
 @MainActor public struct AppList: View {
-    let library = AppLibrary.current
-
-    @State var viewModel = ViewModel()
+    @Environment(AppSource.self) var source
+    @Environment(ViewModel.self) var viewModel
 
     public init() {
     }
 
     public var body: some View {
-        if library.isLoading {
-            VStack {
-                Text("Loading App Library")
-                    .font(.title)
-                ProgressView()
-            }
-        } else {
-            NavigationStack {
-                Section("Available Apps") {
-                    ForEach(library.installedApps.sorted(by: { $0.id < $1.id })) { app in
-                        AppLibraryRow(app: app)
-                    }
-                }
-                Section("Installed Apps") {
-                    ForEach(library.installedApps.sorted(by: { $0.id < $1.id })) { app in
-                        AppLibraryRow(app: app)
-                    }
+        NavigationStack {
+            List {
+                ForEach(source.apps) { app in
+                    NavigationLink(destination: {
+                        AppDetailsView(app: app)
+                    }, label: {
+                        Label {
+                            Text(app.name)
+                        } icon: {
+                            AsyncImage(url: app.iconURL(version: nil))
+                                .frame(width: 29, height: 29)
+                        }
+                    })
                 }
             }
+            .navigationTitle(Text("Apps"))
         }
     }
+}
 
-    @ViewBuilder func appDetailView(id: String) -> some View {
+struct AppDetailsView : View {
+    let app: AppSource.App
+    @Environment(AppSource.self) var source
+    @Environment(ViewModel.self) var viewModel
+    @State var appDescription: String?
+    @State var errorMessage: String?
+
+    var body: some View {
         VStack {
-            Text("APP DETAIL")
+            Text(app.name)
+                .font(.largeTitle)
+            if let appDescription = self.appDescription {
+                Text(appDescription)
+            }
+            if let errorMessage = self.errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+            }
+        }
+        .navigationTitle(app.name)
+        .task {
+            await fetchInfo()
         }
     }
-}
 
-public struct AppLibraryRow: View {
-    let app: AppLibrary.App
-
-    public var body: some View {
-        Text(app.id.description)
+    @MainActor func fetchInfo() async {
+        do {
+            self.appDescription = try await fetch(url: app.descriptionURL(version: nil, locale: nil))
+        } catch {
+            logger.error("error fetching information for app: \(error)")
+            self.errorMessage = error.localizedDescription
+        }
     }
 
+    func fetch(url: URL) async throws -> String {
+        logger.info("fetching URL: \(url)")
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let statusCode = (response as? HTTPURLResponse)?.statusCode {
+            guard (200..<300).contains(statusCode) else {
+                throw AppError(localizedDescription: "Error fetching info: \(statusCode)")
+            }
+        }
+
+        guard let str = String(data: data, encoding: .utf8) else {
+            throw AppError(localizedDescription: "Error fetching info: response was not a string")
+        }
+
+        logger.info("fetched URL: \(url): \(str)")
+
+        return str
+    }
 }
 
-
-@MainActor @Observable public final class ViewModel {
-    let library = AppLibrary.current
-
-//    @Published var content: [ManagedApp] = []
-//    @Published var error: Error? = nil
-//
-//    @MainActor func getApps() async {
-//        do {
-//            for try await result in ManagedAppLibrary.currentDistributor.availableApps {
-//                self.content = try result.get()
-//            }
-//        } catch {
-//            self.error = error
-//        }
-//    }
+struct AppError : Error {
+    var localizedDescription: String
 }
