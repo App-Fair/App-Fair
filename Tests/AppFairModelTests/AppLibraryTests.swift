@@ -5,7 +5,7 @@
 import XCTest
 import OSLog
 import Foundation
-@testable import AppLibrary
+@testable import AppFairModel
 
 let logger: Logger = Logger(subsystem: "AppLibrary", category: "Tests")
 
