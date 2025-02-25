@@ -7,6 +7,7 @@ import AppFairModel
 public struct ContentView: View {
     @AppStorage("setting") var setting = true
     @State var viewModel = ViewModel()
+    @State var appearance = ""
 
     public init() {
     }
@@ -24,15 +25,37 @@ public struct ContentView: View {
             .font(.largeTitle)
             .tabItem { Label("App Fair", systemImage: "house.fill") }
 
-            Form {
-                Text("Settings")
-                    .font(.largeTitle)
-                Toggle("Option", isOn: $setting)
+            NavigationStack {
+                Form {
+                    Picker("Appearance", selection: $appearance) {
+                        Text("System").tag("")
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                    }
+                    HStack {
+                        #if SKIP
+                        ComposeView { ctx in // Mix in Compose code!
+                            androidx.compose.material3.Text("💚", modifier: ctx.modifier)
+                        }
+                        #else
+                        Text(verbatim: "💙")
+                        #endif
+                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                           let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                            Text("Version \(version) (\(buildNumber))")
+                                .foregroundStyle(.gray)
+                        }
+                        Text("Powered by [Skip](https://skip.tools)")
+                    }
+                    .foregroundStyle(.gray)
+                }
+                .navigationTitle("Settings")
             }
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
         .environment(AppSource.shared)
         .environment(viewModel)
+        .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
     }
 }
 

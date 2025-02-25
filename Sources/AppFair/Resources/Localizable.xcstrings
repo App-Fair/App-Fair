@@ -4,17 +4,39 @@
     "App Fair" : {
 
     },
+    "Appearance" : {
+
+    },
     "Apps" : {
 
     },
-    "Option" : {
+    "Dark" : {
+
+    },
+    "Light" : {
 
     },
     "OS Version Unsupported" : {
 
     },
+    "Powered by [Skip](https://skip.tools)" : {
+
+    },
     "Settings" : {
 
+    },
+    "System" : {
+
+    },
+    "Version %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Version %1$@ (%2$@)"
+          }
+        }
+      }
     },
     "Welcome to the App Fair!" : {
 

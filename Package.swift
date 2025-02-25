@@ -5,11 +5,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "appfair-app",
+    name: "app-fair-app",
     defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "AppFairApp", type: .dynamic, targets: ["AppFair"]),
+        .library(name: "AppFairModel", type: .dynamic, targets: ["AppFairModel"]),
     ],
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.0.0"),
@@ -43,6 +44,7 @@ let package = Package(
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "AppFairModelTests", dependencies: [
             "AppFairModel",
+            .product(name: "SkipTest", package: "skip")
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )
