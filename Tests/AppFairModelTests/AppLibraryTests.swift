@@ -1,7 +1,4 @@
-// This is free software: you can redistribute and/or modify it
-// under the terms of the GNU Lesser General Public License 3.0
-// as published by the Free Software Foundation https://fsf.org
-
+// SPDX-License-Identifier: GPL-3.0-only
 import XCTest
 import OSLog
 import Foundation
