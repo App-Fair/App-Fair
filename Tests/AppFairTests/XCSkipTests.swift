@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-2.0-or-later
 #if os(macOS) // Skip transpiled tests only run on macOS targets
 import SkipTest
 
