@@ -2,7 +2,7 @@
 // commits it; Android shows its own confirm screen, and the session's result comes back through a
 // BroadcastReceiver that calls nativeInstallResult(...) — a JNI symbol exported by the app's Rust
 // cdylib (Java_org_appfair_app_appfair_DayInstaller_nativeInstallResult). Also exposes the app's
-// files directory (for the SQLite catalog), installed-version lookups (Install vs Update), and
+// installed-version lookups (Install vs Update), and
 // localized permission labels. Staged into the Gradle build via [package.metadata.day.android];
 // uses day-toolkit-material's cached Context (DayBridge.ctx). No day-toolkit-material edits.
 package org.appfair.app.appfair;
@@ -33,12 +33,6 @@ public final class DayInstaller {
 
     private static final String ACTION = "org.appfair.INSTALL_STATUS";
     private static boolean receiverRegistered = false;
-
-    /** The app-private files directory — where the Rust side keeps its SQLite catalog. */
-    public static String filesDir() {
-        Context ctx = DayBridge.ctx;
-        return (ctx == null) ? "" : ctx.getFilesDir().getAbsolutePath();
-    }
 
     /** Launch an installed app by its package id. Returns an empty string on success, or a
      *  human-readable reason it couldn't launch (so the caller can show a dialog). */

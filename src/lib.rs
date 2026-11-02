@@ -95,11 +95,10 @@ pub(crate) fn push_nav(path: Signal<Vec<Nav>>, dest: Nav) {
 }
 
 pub fn root() -> impl Piece {
-    // Resolve the data directory and the device facts on the UI thread: they go through the
-    // app-class JNI bridge, which only resolves here, and the sync threads read the cached
-    // values. The locale drives a catalog re-import on change (sync::run); the SDK and ABIs
-    // pick the compatible version at sync time.
-    let _ = platform::data_dir();
+    // Resolve the device facts on the UI thread: they go through the app-class JNI bridge, which
+    // only resolves here, and the sync threads read the cached values. The locale drives a
+    // catalog re-import on change (sync::run); the SDK and ABIs pick the compatible version at
+    // sync time.
     let _ = platform::device_locale();
     let _ = platform::device_sdk();
     let _ = platform::device_abis();

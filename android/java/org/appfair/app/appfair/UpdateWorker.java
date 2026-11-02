@@ -22,8 +22,10 @@ public final class UpdateWorker extends Worker {
     static final int NOTIFICATION_ID = 1001;
 
     /** Rust (exported by the app cdylib): sync every enabled catalog and return the number of
-     *  installed apps that now have a newer version, given the installed "pkg\tcode" lines. */
-    static native int nativeCheckUpdates(String installedPackages);
+     *  installed apps that now have a newer version, given the installed "pkg\tcode" lines and
+     *  the app's files and cache directories (a process WorkManager starts has run no activity
+     *  to pass them). */
+    static native int nativeCheckUpdates(String installedPackages, String filesDir, String cacheDir);
 
     public UpdateWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
@@ -36,7 +38,9 @@ public final class UpdateWorker extends Worker {
             // Gather installed packages in Java (this thread has the app classloader), then hand
             // them to Rust to sync + compare against the catalog.
             String installed = DayInstaller.installedPackages();
-            int count = nativeCheckUpdates(installed);
+            Context ctx = getApplicationContext();
+            int count = nativeCheckUpdates(installed, ctx.getFilesDir().getAbsolutePath(),
+                    ctx.getCacheDir().getAbsolutePath());
             if (count > 0) {
                 notifyUpdates(getApplicationContext(), count);
             }

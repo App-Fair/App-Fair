@@ -30,7 +30,7 @@ use crate::fdroid::{self, IndexV2, Package};
 use crate::model::{AntiFeature, AppDetail, AppSummary, Category, RepoRow, SortOrder};
 
 /// The catalog file under the app's data directory.
-const FILE: &str = "catalog.sqlite";
+const FILE: &str = "catalog.db";
 
 /// The rank stored for an app its catalog did not rank, and for every app in a catalog without
 /// the `rank` extension: the largest value, so `ORDER BY rank` puts ranked apps first.

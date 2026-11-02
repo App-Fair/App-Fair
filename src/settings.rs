@@ -122,7 +122,7 @@ pub fn preferences() -> Prefs {
                 .row(
                     rows::action(res::str::clear_cache_title(), move || {
                         let _ =
-                            std::fs::remove_dir_all(crate::platform::data_dir().join("imgcache"));
+                            std::fs::remove_dir_all(crate::platform::cache_dir().join("imgcache"));
                         cleared.set(true);
                     })
                     .caption(move || {

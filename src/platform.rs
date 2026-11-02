@@ -11,7 +11,6 @@ use day_platform_android::{java, java_string, with_env};
 day_platform_android::java_class! {
     DayInstaller => org.appfair.app.appfair.DayInstaller,
     methods {
-        static fn filesDir() -> JString,
         static fn installedVersion(pkg: JString) -> jlong,
         static fn launchApp(pkg: JString) -> JString,
         static fn uninstall(pkg: JString) -> JString,
@@ -35,34 +34,16 @@ day_platform_android::java_class! {
     },
 }
 
-/// The app's private data directory (the catalog, the image cache, staged APKs), resolved once
-/// and cached. JNI `FindClass` for app classes only works on the UI thread (a background thread
-/// gets the system classloader), so this must be first called from the main thread — `root()`
-/// does that before any sync thread starts.
-#[cfg(target_os = "android")]
+/// The app's data directory (`day::storage::data_dir()`): the catalog, the raw catalog indexes
+/// incremental updates patch, staged APKs. On Android the host's files directory.
 pub fn data_dir() -> PathBuf {
-    static DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-    DIR.get_or_init(|| {
-        with_env(|env| java_string(env, DayInstaller::filesDir))
-            .filter(|d| !d.is_empty())
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/data/local/tmp/app-fair"))
-    })
-    .clone()
+    day::storage::data_dir().unwrap_or_else(|| std::env::temp_dir().join("app-fair"))
 }
 
-/// The app's data directory: `DAY_DATA_DIR` when a host or a test passes one, else Application
-/// Support inside the iOS sandbox, else (the desktop development build) a temporary directory.
-#[cfg(not(target_os = "android"))]
-pub fn data_dir() -> PathBuf {
-    if let Some(dir) = std::env::var_os("DAY_DATA_DIR").filter(|d| !d.is_empty()) {
-        return PathBuf::from(dir).join("app-fair");
-    }
-    #[cfg(target_os = "ios")]
-    if let Some(home) = std::env::var_os("HOME") {
-        return PathBuf::from(home).join("Library/Application Support/App Fair");
-    }
-    std::env::temp_dir().join("app-fair")
+/// The app's cache directory (`day::storage::cache_dir()`): downloaded images, which Settings
+/// can clear.
+pub fn cache_dir() -> PathBuf {
+    day::storage::cache_dir().unwrap_or_else(|| std::env::temp_dir().join("app-fair-cache"))
 }
 
 /// The installed versionCode for `pkg`, or `None` when the app is not installed.
@@ -384,17 +365,31 @@ pub fn schedule_update_checks() {
 pub fn schedule_update_checks() {}
 
 /// Background update-check entry point, invoked by `UpdateWorker` on its WorkManager thread. Java
-/// passes the installed packages (it holds the app classloader on that thread); Rust syncs the
-/// catalogs and returns how many installed apps now have an update, which the worker turns into a
-/// notification.
+/// passes the installed packages (it holds the app classloader on that thread) and the app's files
+/// and cache directories; Rust syncs the catalogs and returns how many installed apps now have an
+/// update, which the worker turns into a notification.
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_org_appfair_app_appfair_UpdateWorker_nativeCheckUpdates<'local>(
     mut env: day::android::jni::EnvUnowned<'local>,
     _class: day::android::jni::objects::JClass<'local>,
     installed: day::android::jni::objects::JString<'local>,
+    files_dir: day::android::jni::objects::JString<'local>,
+    cache_dir: day::android::jni::objects::JString<'local>,
 ) -> day::android::jni::sys::jint {
     env.with_env(|env| -> day::android::jni::errors::Result<i32> {
+        // A process WorkManager started has run no activity, so the host never exported the
+        // directories `day::storage` reads; without them the catalog would open somewhere else.
+        for (name, dir) in [("DAY_DATA_DIR", &files_dir), ("DAY_CACHE_DIR", &cache_dir)] {
+            if std::env::var_os(name).is_none()
+                && let Some(dir) = day::android::read_jstring(env, dir).filter(|d| !d.is_empty())
+            {
+                // SAFETY: set before this process's first catalog access, on the one thread
+                // working in Rust: no activity has started the runtime, so nothing else reads
+                // the environment concurrently.
+                unsafe { std::env::set_var(name, dir) };
+            }
+        }
         let raw = day::android::read_jstring(env, &installed).unwrap_or_default();
         // Lines of "pkg\tversionCode", the same shape `installedPackages()` returns.
         let list: Vec<(String, i64)> = raw

@@ -226,7 +226,7 @@ pub fn preseed(url: &str, bytes: &[u8]) {
 fn cache_path(url: &str) -> PathBuf {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     url.hash(&mut h);
-    crate::platform::data_dir()
+    crate::platform::cache_dir()
         .join("imgcache")
         .join(format!("{:016x}", h.finish()))
 }
