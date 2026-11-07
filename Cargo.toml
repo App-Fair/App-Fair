@@ -27,17 +27,17 @@ name = "dayapp"
 crate-type = ["rlib"]
 
 [dependencies]
-day = { package = "day-app", version = "0.6", features = ["model"] }
+day = { package = "day-app", version = "0.*", features = ["model"] }
 # Settings and About: native settings pages over typed preferences (src/settings.rs).
-day-piece-settings = "0.6"
+day-piece-settings = "0.*"
 # The on-device catalog: typed models over bundled SQLite, owned by one database worker so
 # catalog imports and queries never run on the UI thread (src/catalog.rs).
-day-persistence = "0.1"
+day-persistence = "0.*"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # The platform HTTP stack via day (system proxies, VPN, and TLS on macOS/iOS/Android/Windows;
 # a bundled ureq + rustls fallback only on Linux/OHOS).
-day-part-http = "0.6"
+day-part-http = "0.*"
 # Verify a downloaded APK against the catalog's SHA-256 before handing it to the installer.
 sha2 = "0.10"
 # Locale-aware collation for the "Name" sort order. Pure-Rust ICU4X with CLDR data compiled in, so
@@ -48,7 +48,7 @@ icu_locale_core = "2"
 
 # Reach the app's JVM + Context on Android (with_env / dcall_static) for the install bridge.
 [target.'cfg(target_os = "android")'.dependencies]
-day-platform-android = "0.6"
+day-platform-android = "0.*"
 # Lower background-thread OS priority so the first sync never starves the UI thread.
 libc = "0.2"
 
@@ -65,7 +65,7 @@ permissions = ["android.permission.POST_NOTIFICATIONS"]
 proguard = ["android/proguard-rules.pro"]
 
 [build-dependencies]
-day-build = "0.6"
+day-build = "0.*"
 
 
 [workspace]
