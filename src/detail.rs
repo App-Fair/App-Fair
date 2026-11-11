@@ -119,7 +119,7 @@ fn header(app: &AppDetail, compatible: bool) -> impl Piece {
         ))
         .spacing(3.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         button,
     ))
     .spacing(14.0)
@@ -208,7 +208,10 @@ fn compatibility(app: &AppDetail, device_sdk: i64) -> Option<impl Piece> {
     Some(
         row((
             vector(icon).tint(color).frame(20.0, 20.0),
-            label(text).font(Font::Footnote).color(color).grow_w(),
+            label(text)
+                .font(Font::Footnote)
+                .color(color)
+                .grow(Dimension::Width),
         ))
         .spacing(Space::S)
         .align(VAlign::Center),
@@ -279,7 +282,10 @@ fn manage_body(app: &AppDetail, source: Option<String>) -> Option<impl Piece + u
 
     Some(
         row((
-            label(source_text).font(Font::Footnote).secondary().grow_w(),
+            label(source_text)
+                .font(Font::Footnote)
+                .secondary()
+                .grow(Dimension::Width),
             uninstall.id(day::id!(detail_uninstall)),
         ))
         .spacing(Space::M)
@@ -493,7 +499,7 @@ fn info_row(
             Some(color) => title.color(color),
             None => title,
         }
-        .grow_w(),
+        .grow(Dimension::Width),
         vector(res::vectors::info).tint(GLYPH).frame(18.0, 18.0),
     ))
     .spacing(Space::M)

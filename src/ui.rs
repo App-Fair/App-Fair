@@ -27,7 +27,7 @@ pub fn catalogs_page(path: Signal<Vec<Nav>>) -> impl Piece {
     // Adding a custom F-Droid catalog is still a beta feature — the "Add" button is exposed only in
     // debug builds; release builds hide it and browse the default App Fair catalog alone.
     let header = row((
-        switcher.grow_w(),
+        switcher.grow(Dimension::Width),
         cfg!(debug_assertions).then(|| {
             button(crate::res::str::btn_add())
                 .action(move || push_nav(path, Nav::AddCatalog))
@@ -49,7 +49,7 @@ pub fn catalogs_page(path: Signal<Vec<Nav>>) -> impl Piece {
         move |cats| category_picker(cats, category),
     );
     // The category filter (which grows to fill) and the sort-order drop-down share one row.
-    let controls = row((category_region.grow_w(), sort_picker(sort)))
+    let controls = row((category_region.grow(Dimension::Width), sort_picker(sort)))
         .spacing(Space::S)
         .align(VAlign::Center);
 
@@ -79,7 +79,7 @@ pub fn catalogs_page(path: Signal<Vec<Nav>>) -> impl Piece {
         }
     })
     .id(day::id!(app_list))
-    .grow();
+    .grow(Dimension::Both);
 
     column((header, search, controls, sync_line, list))
         .spacing(10.0)
@@ -166,7 +166,7 @@ pub(crate) fn app_row(slot: ItemSlot<AppSummary, String>) -> impl Piece {
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         label(move || slot.field(|a| a.version_name.clone()))
             .font(Font::Caption)
             .color(ACCENT),

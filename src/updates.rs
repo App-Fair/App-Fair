@@ -103,7 +103,7 @@ pub fn updates_page(path: Signal<Vec<Nav>>) -> impl Piece {
     })
     .font(Font::Footnote)
     .secondary()
-    .grow_w()
+    .grow(Dimension::Width)
     .id(day::id!(updates_summary));
 
     // "Update all" appears only while updates are pending; it installs them one after another.
@@ -140,7 +140,7 @@ pub fn updates_page(path: Signal<Vec<Nav>>) -> impl Piece {
         }
     })
     .id(day::id!(updates_list))
-    .grow();
+    .grow(Dimension::Both);
 
     column((header, list))
         .spacing(10.0)
@@ -188,7 +188,7 @@ fn update_row(slot: ItemSlot<Installed, String>) -> impl Piece {
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         status,
     ))
     .spacing(Space::M)

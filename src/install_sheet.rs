@@ -112,8 +112,8 @@ pub fn install_sheet() -> impl Piece {
     .width(320.0);
 
     // Center the card over a full-bleed dim backdrop.
-    column((spacer(), row((spacer(), card, spacer())), spacer()))
-        .grow()
+    card.aligned(Alignment::Center)
+        .grow(Dimension::Both)
         .background(SCRIM)
 }
 

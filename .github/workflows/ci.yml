@@ -9,7 +9,8 @@ on:
   pull_request:
   # Nightly, against the newest day release: what someone who builds this gets.
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "30 3 * * *" # 03:30 Eastern; staggered across daybrite.
+      timezone: America/New_York
   workflow_dispatch:
     inputs:
       day-main:

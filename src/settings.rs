@@ -190,7 +190,7 @@ fn repo_row(slot: ItemSlot<RepoRow, u64>) -> impl Piece {
         ))
         .spacing(2.0)
         .align(HAlign::Leading)
-        .grow_w(),
+        .grow(Dimension::Width),
         toggle(enabled).id(day::id!(repo_enabled, id)),
         button(res::str::btn_remove())
             .action(move || {
