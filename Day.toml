@@ -44,3 +44,14 @@ key-pass = "${DAY_KEY_PASS}"
 # Report which element ids the dayscripts reach: https://daybrite.dev/docs/how-to/dayscript
 [dayscript.coverage]
 enabled = true
+
+# App extensions, each built as its own target and embedded in the app:
+# https://daybrite.dev/docs/how-to/app-extensions
+# The MarketplaceKit extension (platform/ios/MarketplaceExtension/): the system calls it, even
+# while App Fair is not running, for request headers, failed requests and automatic updates.
+# Its Info.plist and MarketplaceExtension.entitlements (the shared App Group) in that folder are
+# merged over the preset. MarketplaceAppExtension needs iOS 26; the app itself runs on 17.4.
+[[extensions]]
+name = "MarketplaceExtension"
+kind = "marketplace"
+deployment-target = "26.0"

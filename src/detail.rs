@@ -9,7 +9,7 @@ use day::reactive::Resource;
 use crate::model::AppDetail;
 use crate::ui::{ACCENT, PLACEHOLDER};
 use crate::updates::OK;
-use crate::{catalog, icons, platform, res, state};
+use crate::{catalog, icons, market, platform, res, state};
 
 /// Anti-feature amber and incompatibility red, each holding its contrast on light and dark grounds.
 const WARN: Color = Color::hex(0xD8_8A_0B);
@@ -35,13 +35,24 @@ pub fn detail_page(repo_id: u64, pkg: String) -> impl Piece {
 }
 
 fn detail_body(app: &AppDetail) -> AnyPiece {
+    if app.is_marketplace() && market::enabled() {
+        return market_body(app);
+    }
     // Compatibility is fixed for a given device + app version, so compute it once. `min_sdk == 0`
     // (repo didn't declare one) or `device_sdk == 0` (unknown/off-device) → don't block.
     let device_sdk = platform::device_sdk();
     let compatible = app.min_sdk == 0 || device_sdk == 0 || app.min_sdk <= device_sdk;
+    let app_for_button = app.clone();
+    // Rebuild the action button whenever the catalog changes — a successful install/update bumps
+    // it, so the button flips (Install → Installed/Launch) without re-navigating.
+    let button = keyed(
+        move || Some(state::catalog_version().get()),
+        move |_| action_button(&app_for_button, compatible),
+    )
+    .any();
     scroll(
         column((
-            header(app, compatible),
+            header(app, button),
             compatibility(app, device_sdk),
             manage(app),
             screenshots(app),
@@ -58,7 +69,180 @@ fn detail_body(app: &AppDetail) -> AnyPiece {
     .any()
 }
 
-fn header(app: &AppDetail, compatible: bool) -> impl Piece {
+/// The detail page of an app the iOS marketplace installs: the shared sections, with
+/// MarketplaceKit's own buttons for Install/Update/Open and Delete, and the installer's own
+/// verdict on whether this device can run it.
+fn market_body(app: &AppDetail) -> AnyPiece {
+    let library = market::library();
+    // The installer's answer for this device (system version, capabilities, age rating); assume
+    // yes until it answers, as Android does when the SDK level is unknown.
+    let met = Signal::new(true);
+    let probe = app.clone();
+    day::task(async move {
+        met.set(market::satisfies(&probe).await);
+    });
+    let app_for_button = app.clone();
+    let button = keyed(
+        move || {
+            Some((
+                state::catalog_version().get(),
+                library.get().generation,
+                met.get(),
+            ))
+        },
+        move |(_, _, met)| market_action(&app_for_button, *met),
+    )
+    .any();
+    let app_for_compat = app.clone();
+    let compat = keyed(
+        move || {
+            Some((
+                met.get(),
+                library.get().status.and_then(|s| s.region_supported()),
+            ))
+        },
+        move |(met, region)| market_compatibility(&app_for_compat, *met, *region),
+    );
+    scroll(
+        column((
+            header(app, button),
+            compat,
+            market_manage(app),
+            screenshots(app),
+            description(app),
+            whats_new(app),
+            permissions(app),
+            anti_features(app),
+            links(app),
+        ))
+        .spacing(18.0)
+        .align(HAlign::Leading)
+        .padding(Space::L),
+    )
+    .any()
+}
+
+/// Open when this marketplace installed the version the catalog offers; Update when it installed
+/// an older one; Install otherwise. Each is MarketplaceKit's own button: only a tap on it installs.
+fn market_action(app: &AppDetail, compatible: bool) -> AnyPiece {
+    let installed = market::installed(&market::library().get_untracked(), app);
+    match installed {
+        Some(v) if market::up_to_date(&v, app) => {
+            market::launch_button(app, res::str::btn_open().format())
+                .id(day::id!(detail_launch))
+                .any()
+        }
+        Some(_) if compatible => market::install_button(app, true, res::str::btn_update().format())
+            .id(day::id!(detail_install))
+            .any(),
+        None if compatible => market::install_button(app, false, res::str::btn_install().format())
+            .id(day::id!(detail_install))
+            .any(),
+        _ => {
+            let (name, need) = (app.name.clone(), app.min_os.clone());
+            button(if installed.is_some() {
+                res::str::btn_update()
+            } else {
+                res::str::btn_install()
+            })
+            .action(move || {
+                let (name, need) = (name.clone(), need.clone());
+                day::task(async move {
+                    alert(res::str::incompatible_title(name))
+                        .message(res::str::incompatible_body_ios(need))
+                        .button(res::str::btn_ok(), ())
+                        .present()
+                        .await;
+                });
+            })
+            .id(day::id!(detail_install))
+            .any()
+        }
+    }
+}
+
+/// The compatibility line for a marketplace app: whether Apple allows marketplaces in this
+/// region at all, then whether the installer accepts this device.
+fn market_compatibility(app: &AppDetail, met: bool, region: Option<bool>) -> Option<AnyPiece> {
+    let (icon, text, color) = if region == Some(false) {
+        (
+            res::vectors::incompatible,
+            res::str::market_region().format(),
+            DANGER,
+        )
+    } else if !met {
+        (
+            res::vectors::incompatible,
+            res::str::compatible_needs_ios(app.min_os.clone()).format(),
+            DANGER,
+        )
+    } else if !app.min_os.is_empty() || !app.device_caps.is_empty() {
+        (
+            res::vectors::compatible,
+            res::str::compatible_yes().format(),
+            OK,
+        )
+    } else {
+        return None;
+    };
+    Some(
+        row((
+            vector(icon).tint(color).frame(20.0, 20.0),
+            label(text)
+                .font(Font::Footnote)
+                .color(color)
+                .grow(Dimension::Width),
+        ))
+        .spacing(Space::S)
+        .align(VAlign::Center)
+        .any(),
+    )
+}
+
+/// Source + Delete, shown when App Fair installed this app and it is still on the device.
+fn market_manage(app: &AppDetail) -> impl Piece {
+    let version = state::catalog_version();
+    let library = market::library();
+    let pkg = app.pkg.clone();
+    let source = state::snapshot(
+        None,
+        move || version.get(),
+        move |_| {
+            let pkg = pkg.clone();
+            catalog::read(move |db| match catalog::install_source(db, &pkg)? {
+                Some(repo) => Ok(Some(catalog::repo_name(db, repo)?)),
+                None => Ok(None),
+            })
+        },
+    );
+    let app = app.clone();
+    keyed(
+        move || Some((source.get(), library.get().generation)),
+        move |(source, _)| market_manage_body(&app, source.clone()),
+    )
+}
+
+fn market_manage_body(app: &AppDetail, source: Option<String>) -> Option<impl Piece + use<>> {
+    market::installed(&market::library().get_untracked(), app)?;
+    let text = match source {
+        Some(s) if !s.is_empty() => res::str::installed_from(s).format(),
+        _ => res::str::installed_by_app_fair().format(),
+    };
+    Some(
+        row((
+            label(text)
+                .font(Font::Footnote)
+                .secondary()
+                .grow(Dimension::Width),
+            market::delete_button(app, res::str::btn_delete().format())
+                .id(day::id!(detail_uninstall)),
+        ))
+        .spacing(Space::M)
+        .align(VAlign::Center),
+    )
+}
+
+fn header(app: &AppDetail, button: AnyPiece) -> impl Piece {
     let icon: AnyPiece = match app.icon_url() {
         Some(url) => async_image(icons::image_signal(&url))
             .rounded(14.0)
@@ -99,14 +283,6 @@ fn header(app: &AppDetail, compatible: bool) -> impl Piece {
     } else {
         crate::res::str::version_line_size(crate::res::str::VersionLineSize { size, version })
     };
-
-    // Rebuild the action button whenever the catalog changes — a successful install/update bumps
-    // it, so the button flips (Install → Installed/Launch) without re-navigating.
-    let app_for_button = app.clone();
-    let button = keyed(
-        move || Some(state::catalog_version().get()),
-        move |_| action_button(&app_for_button, compatible),
-    );
 
     row((
         icon,

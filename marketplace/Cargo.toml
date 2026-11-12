@@ -1,0 +1,29 @@
+[package]
+name = "app-fair-marketplace"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MPL-2.0"
+description = "App Fair's bridge to Apple's MarketplaceKit: install, update, launch and delete apps as an alternative app marketplace"
+publish = false
+
+# MarketplaceKit is a Swift-only framework (its Objective-C header is empty), so objc2 cannot
+# reach it. `src/lib.rs` declares the bridge (https://daybrite.dev/docs/reference/bridge) and
+# `platform/ios/MarketplaceBridge.swift` implements it, with a Rust fallback everywhere else so
+# the crate compiles and tests under bare cargo and day-mock. The install control itself is
+# MarketplaceKit's `ActionButton`, embedded through day-piece-swiftui's provider contract.
+
+[dependencies]
+day-bridge = "0.*"
+day-piece-swiftui = "0.*"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+day-build = "0.*"
+
+# The DayPieces SwiftPM module the iOS host links (https://daybrite.dev/docs/reference/extending).
+# MarketplaceKit arrived in iOS 17.4, the first release of alternative app marketplaces.
+[package.metadata.day.ios]
+frameworks = ["MarketplaceKit", "Security", "SwiftUI"]
+platform = "17.4"

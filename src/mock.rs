@@ -100,6 +100,38 @@ const ICONS: &[(&str, &[u8])] = &[
     ),
 ];
 
+/// The iOS build's curated catalog: App Fair's own apps as an App Index, listed for the
+/// marketplace (real names, versions and Apple item ids from appfair.net's published index).
+const IOS_CATALOG: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/mock/appindex-ios.json"
+));
+
+/// The iOS catalog's icons, by bundle identifier.
+const IOS_ICONS: &[(&str, &[u8])] = &[
+    (
+        "org.appfair.app.Faire-Games",
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/mock/icons/org.appfair.app.Faire-Games.png"
+        )),
+    ),
+    (
+        "org.appfair.app.Net-Skip",
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/mock/icons/org.appfair.app.Net-Skip.png"
+        )),
+    ),
+    (
+        "org.appfair.app.Stanza-Redux",
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/mock/icons/org.appfair.app.Stanza-Redux.png"
+        )),
+    ),
+];
+
 /// Whether to run against the bundled catalog instead of the network — set by `APP_FAIR_MOCK`
 /// (any non-empty value other than `0`).
 pub fn enabled() -> bool {
@@ -110,6 +142,10 @@ pub fn enabled() -> bool {
 /// for the default repo. The icons land on disk before the import commits, so the list's first
 /// rows find them. Safe to call again.
 pub fn seed() {
+    if catalog::PLATFORM == "ios" {
+        seed_ios();
+        return;
+    }
     let Ok(index) = serde_json::from_str::<IndexV2>(CATALOG) else {
         day::warn!("mock catalog failed to parse");
         return;
@@ -122,6 +158,30 @@ pub fn seed() {
     state::write(move |db| {
         let repo_id = catalog::ensure_repo(db, &repo_addr)?;
         catalog::upsert_index(db, repo_id, &index, &locale, true).map(|_| ())
+    });
+}
+
+/// The iOS seed: the App Index catalog into the default iOS catalog (id 1), icons first.
+fn seed_ios() {
+    let Ok(doc) = serde_json::from_str::<crate::appindex::AppIndex>(IOS_CATALOG) else {
+        day::warn!("mock iOS catalog failed to parse");
+        return;
+    };
+    let locale = std::env::var("DAY_LOCALE").unwrap_or_else(|_| "en-US".to_string());
+    for (bundle, bytes) in IOS_ICONS {
+        let found = doc
+            .apps
+            .iter()
+            .filter_map(|a| a.platforms.get("ios"))
+            .find(|p| p.bundle_identifier == *bundle);
+        if let Some(icon) = found.and_then(|p| p.assets.icon.as_ref()) {
+            icons::preseed(&icon.location, bytes);
+        }
+    }
+    state::write(move |db| {
+        let repo_id = catalog::ensure_repo(db, catalog::DEFAULT_APPINDEX_URL)?;
+        let import = crate::appindex::import(&doc, repo_id, &locale, "ios", 0);
+        catalog::import(db, repo_id, import, &locale, true).map(|_| ())
     });
 }
 
@@ -190,6 +250,29 @@ mod tests {
             catalog::detail(&db, repo_id, "app.organicmaps")
                 .unwrap()
                 .is_some()
+        );
+    }
+
+    #[test]
+    fn the_ios_catalog_lists_marketplace_apps_with_icons() {
+        let doc: crate::appindex::AppIndex =
+            serde_json::from_str(IOS_CATALOG).expect("mock iOS catalog parses");
+        let import = crate::appindex::import(&doc, 1, "en-US", "ios", 0);
+        assert_eq!(import.apps.len(), IOS_ICONS.len());
+        for app in &import.apps {
+            assert!(app.apple_item_id > 0, "{} has no Apple item id", app.pkg);
+            assert!(
+                IOS_ICONS
+                    .iter()
+                    .any(|(b, bytes)| *b == app.pkg && !bytes.is_empty()),
+                "no bundled icon for {}",
+                app.pkg
+            );
+        }
+        // The walkthrough opens Net Skip by its row key, first in the catalog's rank.
+        assert_eq!(
+            import.apps.iter().find(|a| a.rank == 0).unwrap().pkg,
+            "org.appfair.app.Net-Skip"
         );
     }
 }

@@ -34,12 +34,32 @@ const FILE: &str = "catalog.db";
 
 /// The rank stored for an app its catalog did not rank, and for every app in a catalog without
 /// the `rank` extension: the largest value, so `ORDER BY rank` puts ranked apps first.
-const UNRANKED: i64 = i64::MAX;
+pub const UNRANKED: i64 = i64::MAX;
+
+/// The platform this build installs for, which is what a catalog import keeps: an App Index
+/// catalog lists each app's Android and iOS builds side by side, an F-Droid catalog lists only
+/// Android apps, and an AltStore source only iOS ones. Desktop builds (the mock and tests) behave
+/// as Android, whose installer they stand in for.
+pub const PLATFORM: &str = if cfg!(target_os = "ios") {
+    "ios"
+} else {
+    "android"
+};
+
+/// A catalog document format.
+pub mod format {
+    /// An F-Droid Index V2 repository: `address` is the repository base, beside `entry.json`.
+    pub const FDROID: &str = "fdroid";
+    /// An App Index document (https://appfair.org/schemas/appindex/): `address` is its URL.
+    pub const APPINDEX: &str = "appindex";
+    /// An AltStore source: `address` is its URL.
+    pub const ALTSTORE: &str = "altstore";
+}
 
 /// The version of the stored catalog's shape, bumped whenever App Fair starts reading a field it
 /// used to ignore. A repo imported under an older epoch re-imports its cached index on the next
 /// sync even when the catalog itself has not changed, so the new field fills in (`sync::run`).
-pub const CATALOG_EPOCH: i64 = 1;
+pub const CATALOG_EPOCH: i64 = 2;
 
 /// Rows the worker keeps resident per model. An import passes every app of a catalog through
 /// the cache, and nothing holds them afterwards, so a small working set is enough.
@@ -50,15 +70,18 @@ pub const SEARCH_LIMIT: usize = 500;
 
 // --- models --------------------------------------------------------------------------------
 
-/// One catalog: an F-Droid-compatible repository.
+/// One catalog: an F-Droid repository, an App Index document, or an AltStore source.
 #[derive(Model, Clone, Default, PartialEq, Debug)]
 #[model(table = "repos")]
 pub struct Repo {
     #[model(id)]
     pub id: u64,
-    /// The base address, without the index file name: `https://f-droid.org/repo`.
+    /// An F-Droid repository's base address, without the index file name
+    /// (`https://f-droid.org/repo`); an App Index or AltStore document's own URL.
     #[model(unique)]
     pub address: String,
+    /// The document's [`format`]; empty until the first sync recognizes it.
+    pub format: String,
     pub name: String,
     /// The index timestamp of the last import; `0` until the first sync.
     pub timestamp: i64,
@@ -90,7 +113,9 @@ pub struct App {
     #[model(id)]
     pub id: String,
     pub repo: One<Repo>,
-    /// The Android application id, `org.fdroid.fdroid`.
+    /// The platform this row installs on: [`PLATFORM`] at import time.
+    pub platform: String,
+    /// The Android application id (`org.fdroid.fdroid`) or the iOS bundle identifier.
     #[model(index)]
     pub pkg: String,
     pub name: String,
@@ -128,6 +153,24 @@ pub struct App {
     /// The app's place in the catalog's `rank` list, or [`UNRANKED`].
     #[model(index)]
     pub rank: i64,
+    /// iOS: the build number (`CFBundleVersion`) the catalog offers.
+    pub bundle_version: String,
+    /// iOS: the oldest system version the offered build runs on.
+    pub min_os: String,
+    /// iOS: the app's Apple item id, which MarketplaceKit installs by; `0` when not installable.
+    #[model(index)]
+    pub apple_item_id: u64,
+    /// iOS: the offered version's Apple version id, `0` when the catalog does not say.
+    pub apple_version_id: u64,
+    /// iOS: the catalog's URL for the alternative distribution package.
+    pub package_url: String,
+    /// iOS: device capabilities the build requires (`arm64`, …).
+    #[model(json)]
+    pub device_caps: Vec<String>,
+    /// iOS: the app's age rating rank, `0` when unknown.
+    pub age_rank: i64,
+    /// iOS: the app's page on the marketplace website, for the Home Screen share sheet.
+    pub share_url: String,
 }
 
 impl App {
@@ -262,17 +305,27 @@ pub fn open(driver: Sqlite) -> Result<ModelContainer, DbError> {
         schema![Repo, App, CategoryLabel, AntiFeatureLabel, Install],
     )?;
     db.set_cache_limit(CACHE_ROWS);
-    // The default catalog exists from first launch (empty until it syncs), with the App Fair
-    // repository's signing fingerprint pinned so its index is verified (#1).
-    let id = ensure_repo(&db, &crate::model::split_index_url(DEFAULT_INDEX_URL).0)?;
-    if repo(&db, id)?.is_some_and(|r| r.fingerprint.is_empty()) {
-        set_repo_fingerprint(&db, id, DEFAULT_FINGERPRINT)?;
+    // The default catalog exists from first launch (empty until it syncs). On Android it is the
+    // App Fair F-Droid repository, its signing fingerprint pinned so its index is verified (#1);
+    // on iOS it is the App Fair App Index, which lists the marketplace's apps.
+    if PLATFORM == "ios" {
+        let id = ensure_repo(&db, DEFAULT_APPINDEX_URL)?;
+        set_repo_format(&db, id, format::APPINDEX)?;
+    } else {
+        let id = ensure_repo(&db, &crate::model::split_index_url(DEFAULT_INDEX_URL).0)?;
+        if repo(&db, id)?.is_some_and(|r| r.fingerprint.is_empty()) {
+            set_repo_fingerprint(&db, id, DEFAULT_FINGERPRINT)?;
+        }
+        set_repo_format(&db, id, format::FDROID)?;
     }
     Ok(db)
 }
 
-/// The default catalog: the App Fair Index V2 repository.
+/// The default Android catalog: the App Fair Index V2 repository.
 pub const DEFAULT_INDEX_URL: &str = "https://appfair.net/repo/index-v2.json";
+
+/// The default iOS catalog: the App Fair App Index.
+pub const DEFAULT_APPINDEX_URL: &str = "https://appfair.net/appindex.v1.json";
 
 /// The App Fair repository's signing-certificate fingerprint (the SHA-256 `verifyEntryJar`
 /// derives), so the default catalog's signed index is verified (#1).
@@ -331,6 +384,17 @@ pub fn set_repo_fingerprint(
     db.save()
 }
 
+/// Record which [`format`] a catalog's document is.
+pub fn set_repo_format(db: &ModelContainer, id: u64, format: &str) -> Result<(), DbError> {
+    if repo(db, id)?.is_some_and(|r| r.format != format)
+        && let Some(r) = db.try_get::<Repo>(id)?
+    {
+        r.format().write(format.to_string());
+        db.save()?;
+    }
+    Ok(())
+}
+
 pub fn set_repo_enabled(db: &ModelContainer, id: u64, enabled: bool) -> Result<(), DbError> {
     if let Some(r) = db.try_get::<Repo>(id)? {
         r.enabled().write(enabled);
@@ -361,6 +425,7 @@ pub fn repos(db: &ModelContainer) -> Result<Vec<RepoRow>, DbError> {
             Ok(RepoRow {
                 id: r.id,
                 address: r.address,
+                format: r.format,
                 name: r.name,
                 timestamp: r.timestamp,
                 enabled: r.enabled,
@@ -426,6 +491,7 @@ fn build_app(repo: u64, pkg: &str, package: &Package, locale: &str, rank: i64) -
     let mut app = App {
         id: app_key(repo, pkg),
         repo: One::to(repo),
+        platform: "android".to_string(),
         pkg: pkg.to_string(),
         name: fdroid::pick(&meta.name, locale)
             .cloned()
@@ -499,15 +565,71 @@ fn stamps(db: &ModelContainer, repo: u64) -> Result<HashMap<String, (i64, i64)>,
     })
 }
 
-/// Apply a freshly parsed index to catalog `repo`, writing only the apps that changed, and
-/// return how many it wrote.
-///
-/// An app's `(last_updated, rank)` is its change stamp: a stored app with the same stamp is
-/// left alone unless `force` (a locale change, so every localized field is picked again). Rank
-/// is part of the stamp because a catalog can reorder its ranking without touching
-/// `lastUpdated`. Apps the index no longer lists are deleted, and the category and
-/// anti-feature labels are replaced. Run inside one worker write, the whole import is one
-/// transaction.
+/// What one catalog document contributes, whatever its format: the catalog's own name, change
+/// stamp and mirrors, its category and anti-feature labels, and one row per app installable on
+/// [`PLATFORM`].
+#[derive(Debug, Default)]
+pub struct Import {
+    pub name: String,
+    /// The document's change stamp: an F-Droid index's timestamp, an App Index's `generated`
+    /// time, or a digest of the document's bytes.
+    pub stamp: i64,
+    pub mirrors: Vec<String>,
+    /// `(key, name)`.
+    pub categories: Vec<(String, String)>,
+    /// `(key, name, description)`.
+    pub anti_features: Vec<(String, String, String)>,
+    pub apps: Vec<App>,
+}
+
+/// An F-Droid index as an [`Import`]. F-Droid lists Android packages only, so on iOS it
+/// contributes its labels and nothing installable.
+pub fn fdroid_import(repo: u64, index: &IndexV2, locale: &str) -> Import {
+    let ranks: HashMap<&str, i64> = index
+        .rank
+        .iter()
+        .enumerate()
+        .map(|(i, p)| (p.as_str(), i as i64))
+        .collect();
+    let pick = |m: &fdroid::Localized<String>| fdroid::pick(m, locale).cloned();
+    Import {
+        name: pick(&index.repo.name).unwrap_or_default(),
+        stamp: index.repo.timestamp,
+        mirrors: index.repo.mirrors.iter().map(|m| m.url.clone()).collect(),
+        categories: index
+            .repo
+            .categories
+            .iter()
+            .map(|(key, def)| (key.clone(), pick(&def.name).unwrap_or_else(|| key.clone())))
+            .collect(),
+        anti_features: index
+            .repo
+            .anti_features
+            .iter()
+            .map(|(key, def)| {
+                (
+                    key.clone(),
+                    pick(&def.name).unwrap_or_else(|| key.clone()),
+                    pick(&def.description).unwrap_or_default(),
+                )
+            })
+            .collect(),
+        apps: if PLATFORM == "android" {
+            index
+                .packages
+                .iter()
+                .map(|(pkg, package)| {
+                    let rank = ranks.get(pkg.as_str()).copied().unwrap_or(UNRANKED);
+                    build_app(repo, pkg, package, locale, rank)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
+    }
+}
+
+/// Apply a freshly parsed F-Droid index to catalog `repo`; see [`import`].
 pub fn upsert_index(
     db: &ModelContainer,
     repo: u64,
@@ -515,83 +637,82 @@ pub fn upsert_index(
     locale: &str,
     force: bool,
 ) -> Result<usize, DbError> {
-    let ranks: HashMap<&str, i64> = index
-        .rank
-        .iter()
-        .enumerate()
-        .map(|(i, p)| (p.as_str(), i as i64))
-        .collect();
+    import(db, repo, fdroid_import(repo, index, locale), locale, force)
+}
+
+/// Apply a freshly parsed catalog to catalog `repo`, writing only the apps that changed, and
+/// return how many it wrote.
+///
+/// An app's `(last_updated, rank)` is its change stamp: a stored app with the same stamp is
+/// left alone unless `force` (a locale change, so every localized field is picked again, or a
+/// document format whose apps carry no reliable per-app stamp). Rank is part of the stamp
+/// because a catalog can reorder its ranking without touching `lastUpdated`. Apps the catalog
+/// no longer lists are deleted, and the category and anti-feature labels are replaced. Run
+/// inside one worker write, the whole import is one transaction.
+pub fn import(
+    db: &ModelContainer,
+    repo: u64,
+    import: Import,
+    locale: &str,
+    force: bool,
+) -> Result<usize, DbError> {
     let stored = stamps(db, repo)?;
+    let listed: HashSet<String> = import.apps.iter().map(|a| a.pkg.clone()).collect();
 
     // A changed app is written whole. Inserting a key the file already holds is an upsert,
     // so only a resident copy has to leave the cache first.
     let apps = db.cache::<App>();
     let mut written = 0;
-    for (pkg, package) in &index.packages {
-        let rank = ranks.get(pkg.as_str()).copied().unwrap_or(UNRANKED);
-        if !force && stored.get(pkg) == Some(&(package.metadata.last_updated, rank)) {
+    for app in import.apps {
+        if !force && stored.get(&app.pkg) == Some(&(app.last_updated, app.rank)) {
             continue;
         }
-        let app = build_app(repo, pkg, package, locale, rank);
         apps.depopulate(app.id.as_str());
         db.insert(app);
         written += 1;
     }
-    for pkg in stored.keys().filter(|p| !index.packages.contains_key(*p)) {
+    for pkg in stored.keys().filter(|p| !listed.contains(*p)) {
         db.delete::<App>(app_key(repo, pkg))?;
     }
 
     replace_labels(
         db,
         repo,
-        index
-            .repo
+        import
             .categories
-            .iter()
-            .map(|(key, def)| CategoryLabel {
-                id: app_key(repo, key),
+            .into_iter()
+            .map(|(key, name)| CategoryLabel {
+                id: app_key(repo, &key),
                 repo: One::to(repo),
-                key: key.clone(),
-                name: fdroid::pick(&def.name, locale)
-                    .cloned()
-                    .unwrap_or_else(|| key.clone()),
+                key,
+                name,
             }),
         |l| &l.id,
     )?;
     replace_labels(
         db,
         repo,
-        index
-            .repo
+        import
             .anti_features
-            .iter()
-            .map(|(key, def)| AntiFeatureLabel {
-                id: app_key(repo, key),
+            .into_iter()
+            .map(|(key, name, description)| AntiFeatureLabel {
+                id: app_key(repo, &key),
                 repo: One::to(repo),
-                key: key.clone(),
-                name: fdroid::pick(&def.name, locale)
-                    .cloned()
-                    .unwrap_or_else(|| key.clone()),
-                description: fdroid::pick(&def.description, locale)
-                    .cloned()
-                    .unwrap_or_default(),
+                key,
+                name,
+                description,
             }),
         |l| &l.id,
     )?;
 
     if let Some(r) = db.try_get::<Repo>(repo)? {
-        r.timestamp().write(index.repo.timestamp);
-        r.name().write(
-            fdroid::pick(&index.repo.name, locale)
-                .cloned()
-                .unwrap_or_default(),
-        );
+        r.timestamp().write(import.stamp);
+        r.name().write(import.name);
         r.mirrors().write(
-            index
-                .repo
+            import
                 .mirrors
                 .iter()
-                .map(|m| m.url.trim_end_matches('/').to_string())
+                .map(|m| m.trim_end_matches('/').to_string())
                 .filter(|u| !u.is_empty())
                 .collect(),
         );
@@ -840,7 +961,92 @@ pub fn detail(db: &ModelContainer, repo_id: u64, pkg: &str) -> Result<Option<App
         whats_new: a.whats_new,
         last_updated: a.last_updated,
         categories: a.categories,
+        platform: a.platform,
+        bundle_version: a.bundle_version,
+        min_os: a.min_os,
+        apple_item_id: a.apple_item_id,
+        apple_version_id: a.apple_version_id,
+        package_url: a.package_url,
+        device_caps: a.device_caps,
+        age_rank: a.age_rank,
+        share_url: a.share_url,
     }))
+}
+
+// --- the iOS marketplace -------------------------------------------------------------------
+
+/// The package each of `items` (Apple item ids) is listed as, in the enabled catalogs: how an app
+/// the system reports by item id finds its catalog entry.
+pub fn packages_for_items(
+    db: &ModelContainer,
+    items: &[u64],
+) -> Result<HashMap<u64, String>, DbError> {
+    let mut out = HashMap::new();
+    if items.is_empty() {
+        return Ok(out);
+    }
+    let marks = vec!["?"; items.len()].join(", ");
+    db.try_with_connection(|conn| {
+        conn.query(
+            &format!(
+                "SELECT a.apple_item_id, a.pkg FROM apps a JOIN repos r ON r.id = a.repo \
+                 WHERE r.enabled = 1 AND a.apple_item_id IN ({marks}) \
+                 ORDER BY r.priority"
+            ),
+            &items
+                .iter()
+                .map(|i| Value::Int(*i as i64))
+                .collect::<Vec<_>>(),
+            &mut |row| {
+                if let (Ok(item), Ok(pkg)) = (row.get(0).as_int(), row.get(1).as_text()) {
+                    // Ordered by priority, so the highest-priority catalog's listing wins.
+                    out.insert(item as u64, pkg.to_string());
+                }
+            },
+        )?;
+        Ok(())
+    })?;
+    Ok(out)
+}
+
+/// Every installable marketplace app in the enabled catalogs, the highest-priority catalog's
+/// listing for each: what the marketplace extension offers the system for automatic updates.
+pub fn marketplace_apps(db: &ModelContainer) -> Result<Vec<AppDetail>, DbError> {
+    let keys: Vec<(u64, String)> = db.try_with_connection(|conn| {
+        let mut best: HashMap<u64, (i64, u64, String)> = HashMap::new();
+        conn.query(
+            "SELECT a.apple_item_id, r.priority, a.repo, a.pkg FROM apps a \
+             JOIN repos r ON r.id = a.repo WHERE r.enabled = 1 AND a.apple_item_id > 0",
+            &[],
+            &mut |row| {
+                if let (Ok(item), Ok(priority), Ok(repo), Ok(pkg)) = (
+                    row.get(0).as_int(),
+                    row.get(1).as_int(),
+                    row.get(2).as_int(),
+                    row.get(3).as_text(),
+                ) {
+                    let entry = (priority, repo as u64, pkg.to_string());
+                    best.entry(item as u64)
+                        .and_modify(|e| {
+                            if entry.0 > e.0 {
+                                *e = entry.clone();
+                            }
+                        })
+                        .or_insert(entry);
+                }
+            },
+        )?;
+        Ok(best
+            .into_values()
+            .map(|(_, repo, pkg)| (repo, pkg))
+            .collect())
+    })?;
+    let mut out = Vec::new();
+    for (repo, pkg) in keys {
+        out.extend(detail(db, repo, &pkg)?);
+    }
+    out.sort_by_key(|a| a.apple_item_id);
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -1127,5 +1333,130 @@ mod tests {
         assert_eq!(pkgs(&hits), ["com.example.alpha"]);
         assert_eq!(hits[0].repo_id, repo);
         block_on(worker.close()).unwrap();
+    }
+
+    const APPINDEX: &str = include_str!("testdata/appindex.json");
+    const ALTSTORE: &str = include_str!("testdata/altstore-source.json");
+
+    #[test]
+    fn an_app_index_imports_this_platforms_builds() {
+        let db = memory();
+        let repo = ensure_repo(&db, "https://test.example/appindex.json").unwrap();
+        set_repo_format(&db, repo, format::APPINDEX).unwrap();
+        let doc: crate::appindex::AppIndex = serde_json::from_str(APPINDEX).unwrap();
+        let written = import(
+            &db,
+            repo,
+            crate::appindex::import(&doc, repo, "en-US", PLATFORM, 0),
+            "en-US",
+            true,
+        )
+        .unwrap();
+        assert_eq!(written, 2);
+        let r = repos(&db)
+            .unwrap()
+            .into_iter()
+            .find(|r| r.id == repo)
+            .unwrap();
+        assert_eq!(r.format, format::APPINDEX);
+        assert_eq!(r.name, "App Fair Catalog");
+        assert_eq!(r.timestamp, 1_777_658_400);
+
+        let d = detail(&db, repo, "org.appfair.app.Net_Skip")
+            .unwrap()
+            .unwrap();
+        assert_eq!(d.platform, "android");
+        // The APK's URL is absolute, so it resolves without the catalog's address.
+        assert_eq!(
+            d.apk_url(),
+            "https://github.com/Net-Skip/Net-Skip/releases/download/1.4.23/Net-Skip-release.apk"
+        );
+        assert!(!d.is_marketplace());
+        // The ranked app leads the default order.
+        let hits = browse(&db, |s| s.repo = Some(repo));
+        assert_eq!(hits[0].pkg, "org.appfair.app.Net_Skip");
+    }
+
+    #[test]
+    fn marketplace_listings_resolve_by_apple_item_id() {
+        let db = memory();
+        let repo = ensure_repo(&db, "https://test.example/appindex.json").unwrap();
+        let doc: crate::appindex::AppIndex = serde_json::from_str(APPINDEX).unwrap();
+        // The iOS rows, imported as an iOS device would.
+        import(
+            &db,
+            repo,
+            crate::appindex::import(&doc, repo, "en-US", "ios", 0),
+            "en-US",
+            true,
+        )
+        .unwrap();
+        let source_repo = ensure_repo(&db, "https://test.example/source.json").unwrap();
+        let source: crate::altstore::Source = serde_json::from_str(ALTSTORE).unwrap();
+        import(
+            &db,
+            source_repo,
+            crate::altstore::import(&source, source_repo, "ios", 9),
+            "en-US",
+            true,
+        )
+        .unwrap();
+
+        let d = detail(&db, repo, "org.appfair.app.Net-Skip")
+            .unwrap()
+            .unwrap();
+        assert!(d.is_marketplace());
+        assert_eq!(d.apple_item_id, 1640618584);
+        assert_eq!(d.apple_version_id, 869899373);
+        assert_eq!(d.device_caps, vec!["arm64"]);
+        assert_eq!(
+            d.icon_url().as_deref(),
+            Some("https://raw.example/Net-Skip/1.4.23/Darwin/icon.png")
+        );
+
+        // Both catalogs list Net Skip; the later catalog has the higher priority and wins.
+        let pkgs = packages_for_items(&db, &[1640618584, 6476788646, 1]).unwrap();
+        assert_eq!(pkgs.len(), 2);
+        assert_eq!(pkgs[&6476788646], "com.example.notes");
+        let apps = marketplace_apps(&db).unwrap();
+        assert_eq!(
+            apps.iter()
+                .map(|a| (a.apple_item_id, a.repo_id))
+                .collect::<Vec<_>>(),
+            vec![(1640618584, source_repo), (6476788646, source_repo)]
+        );
+
+        // A disabled catalog's listings are not offered.
+        set_repo_enabled(&db, source_repo, false).unwrap();
+        let apps = marketplace_apps(&db).unwrap();
+        assert_eq!(
+            apps.iter()
+                .map(|a| (a.apple_item_id, a.repo_id))
+                .collect::<Vec<_>>(),
+            vec![(1640618584, repo)]
+        );
+    }
+
+    #[test]
+    fn an_altstore_source_lists_nothing_installable_on_android() {
+        let db = memory();
+        let repo = ensure_repo(&db, "https://test.example/source.json").unwrap();
+        let source: crate::altstore::Source = serde_json::from_str(ALTSTORE).unwrap();
+        let written = import(
+            &db,
+            repo,
+            crate::altstore::import(&source, repo, "android", 1),
+            "en-US",
+            true,
+        )
+        .unwrap();
+        assert_eq!(written, 0);
+        let r = repos(&db)
+            .unwrap()
+            .into_iter()
+            .find(|r| r.id == repo)
+            .unwrap();
+        assert_eq!(r.name, "Example PAL Source");
+        assert_eq!(r.app_count, 0);
     }
 }

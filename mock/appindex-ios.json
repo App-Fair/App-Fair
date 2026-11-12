@@ -1,0 +1,216 @@
+{
+  "$schema": "https://appfair.org/schemas/appindex/v1.json",
+  "specVersion": "1.0",
+  "generated": "2026-10-15T12:00:00Z",
+  "generator": "app-fair-mock",
+  "catalog": {
+    "name": {
+      "en": "App Fair",
+      "fr": "App Fair"
+    },
+    "homepage": "https://appfair.net",
+    "categories": {
+      "games": {
+        "name": {
+          "en": "Games",
+          "fr": "Jeux"
+        }
+      },
+      "internet": {
+        "name": {
+          "en": "Internet",
+          "fr": "Internet"
+        }
+      },
+      "reading": {
+        "name": {
+          "en": "Reading",
+          "fr": "Lecture"
+        }
+      }
+    },
+    "rank": [
+      "Net-Skip",
+      "Faire-Games",
+      "Stanza-Redux"
+    ]
+  },
+  "apps": [
+    {
+      "name": "Faire-Games",
+      "title": {
+        "en": "Fair Games"
+      },
+      "subtitle": {
+        "en": "Classic Puzzle & Arcade Games",
+        "fr": "Jeux classiques puzzle/arcade"
+      },
+      "description": {
+        "en": "Fair Games is a free, open-source collection of classic puzzle and arcade games.",
+        "fr": "Fair Games est une collection gratuite et open-source de jeux classiques de puzzle et d'arcade."
+      },
+      "categories": [
+        "games"
+      ],
+      "developer": {
+        "name": "App Fair Project",
+        "url": "https://appfair.org"
+      },
+      "source": {
+        "url": "https://github.com/appfair/Faire-Games",
+        "license": "GPL-2.0-only"
+      },
+      "platforms": {
+        "ios": {
+          "version": "1.5.1",
+          "buildNumber": "19",
+          "bundleIdentifier": "org.appfair.app.Faire-Games",
+          "released": "2026-10-02T16:00:00Z",
+          "minimumSystemVersion": "17.4",
+          "assets": {
+            "icon": {
+              "location": "https://appfair.net/mock/icons/org.appfair.app.Faire-Games.png",
+              "size": 1,
+              "digest": "sha256:00",
+              "width": 192,
+              "height": 192
+            }
+          },
+          "distribution": {
+            "adp": {
+              "appleItemId": "6761661340",
+              "url": "https://packages.appfair.cloud/6761661340/",
+              "requiredDeviceCapabilities": [
+                "arm64"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Net-Skip",
+      "title": {
+        "en": "Net Skip"
+      },
+      "subtitle": {
+        "en": "A humane web browser",
+        "fr": "Un navigateur web humain"
+      },
+      "description": {
+        "en": "Net Skip is a thoughtfully designed web browser that brings clarity and speed to everyday browsing.",
+        "fr": "Net Skip est un navigateur web pensé avec soin, qui apporte clarté et rapidité à votre navigation quotidienne."
+      },
+      "categories": [
+        "internet"
+      ],
+      "developer": {
+        "name": "App Fair Project",
+        "url": "https://appfair.org"
+      },
+      "source": {
+        "url": "https://github.com/appfair/Net-Skip",
+        "license": "GPL-2.0-only"
+      },
+      "platforms": {
+        "ios": {
+          "version": "1.4.23",
+          "buildNumber": "236",
+          "bundleIdentifier": "org.appfair.app.Net-Skip",
+          "released": "2026-09-14T16:00:00Z",
+          "minimumSystemVersion": "17.4",
+          "assets": {
+            "icon": {
+              "location": "https://appfair.net/mock/icons/org.appfair.app.Net-Skip.png",
+              "size": 1,
+              "digest": "sha256:00",
+              "width": 192,
+              "height": 192
+            }
+          },
+          "distribution": {
+            "adp": {
+              "appleItemId": "1640618584",
+              "url": "https://packages.appfair.cloud/1640618584/",
+              "requiredDeviceCapabilities": [
+                "arm64"
+              ]
+            }
+          },
+          "permissions": [
+            {
+              "key": "NSCalendarsUsageDescription"
+            },
+            {
+              "key": "NSCameraUsageDescription"
+            },
+            {
+              "key": "NSContactsUsageDescription"
+            },
+            {
+              "key": "NSFaceIDUsageDescription"
+            },
+            {
+              "key": "NSLocationWhenInUseUsageDescription"
+            },
+            {
+              "key": "NSMicrophoneUsageDescription"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Stanza-Redux",
+      "title": {
+        "en": "Stanza"
+      },
+      "subtitle": {
+        "en": "The original ebook reader",
+        "fr": "Le lecteur d'ebooks original"
+      },
+      "description": {
+        "en": "Stanza Redux is a free, open-source ebook reader that brings your EPUB library to life. Import books from your device, browse and download from public domain catalogs, and enjoy a beautifully customizable reading experience.",
+        "fr": "Stanza Redux est un lecteur d'ebooks gratuit et open source qui donne vie à votre bibliothèque EPUB. Importez des livres depuis votre appareil, parcourez et téléchargez depuis des catalogues du domaine public et profitez d'une expérience de lecture magnifiquement personnalisable."
+      },
+      "categories": [
+        "reading"
+      ],
+      "developer": {
+        "name": "App Fair Project",
+        "url": "https://appfair.org"
+      },
+      "source": {
+        "url": "https://github.com/appfair/Stanza-Redux",
+        "license": "GPL-2.0-only"
+      },
+      "platforms": {
+        "ios": {
+          "version": "1.4.0",
+          "buildNumber": "19",
+          "bundleIdentifier": "org.appfair.app.Stanza-Redux",
+          "released": "2026-08-20T16:00:00Z",
+          "minimumSystemVersion": "17.4",
+          "assets": {
+            "icon": {
+              "location": "https://appfair.net/mock/icons/org.appfair.app.Stanza-Redux.png",
+              "size": 1,
+              "digest": "sha256:00",
+              "width": 192,
+              "height": 192
+            }
+          },
+          "distribution": {
+            "adp": {
+              "appleItemId": "1639831676",
+              "url": "https://packages.appfair.cloud/1639831676/",
+              "requiredDeviceCapabilities": [
+                "arm64"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

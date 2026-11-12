@@ -1,0 +1,94 @@
+{
+  "$schema": "https://appfair.org/schemas/appindex/v1.json",
+  "specVersion": "1.0",
+  "generated": "2026-05-01T18:00:00Z",
+  "generator": "app-fair-tests",
+  "catalog": {
+    "name": { "en": "App Fair Catalog", "fr": "Catalogue App Fair" },
+    "homepage": "https://appfair.net",
+    "mirrors": ["https://mirror.example/appindex"],
+    "categories": { "internet": { "name": { "en": "Internet" } } },
+    "rank": ["NetSkip"]
+  },
+  "apps": [
+    {
+      "name": "NetSkip",
+      "title": { "en": "Net Skip" },
+      "subtitle": { "en": "A humane web browser", "fr": "Un navigateur" },
+      "description": { "en": "The browser.", "fr": "Le navigateur." },
+      "categories": ["internet"],
+      "developer": { "name": "App Fair Project", "url": "https://appfair.org" },
+      "links": { "website": { "en": "https://netskip.app" } },
+      "source": {
+        "url": "https://github.com/Net-Skip/Net-Skip.git",
+        "release": "https://github.com/Net-Skip/Net-Skip/releases/download/1.4.23/",
+        "assets": "https://raw.example/Net-Skip/1.4.23/",
+        "license": "GPL-2.0-or-later"
+      },
+      "platforms": {
+        "ios": {
+          "version": "1.4.23",
+          "buildNumber": "236",
+          "bundleIdentifier": "org.appfair.app.Net-Skip",
+          "subtitle": { "fr": "Un navigateur web humain" },
+          "released": "2026-04-30T12:00:00Z",
+          "minimumSystemVersion": "17.0",
+          "permissions": [
+            { "key": "NSCameraUsageDescription", "description": { "en": "Scan QR codes" } }
+          ],
+          "assets": {
+            "icon": { "location": "Darwin/icon.png", "size": 1, "digest": "sha256:00", "width": 1024, "height": 1024 },
+            "screenshots": {
+              "en": [{ "location": "Darwin/shots/1.png", "size": 1, "digest": "sha256:00", "width": 1290, "height": 2796 }]
+            }
+          },
+          "distribution": {
+            "adp": {
+              "appleItemId": "1640618584",
+              "appleVersionId": "869899373",
+              "url": "https://packages.appfair.cloud/1640618584/",
+              "size": 805788,
+              "requiredDeviceCapabilities": ["arm64"]
+            }
+          }
+        },
+        "android": {
+          "version": "1.4.23",
+          "buildNumber": "228",
+          "applicationId": "org.appfair.app.Net_Skip",
+          "released": "2026-04-30T12:00:00Z",
+          "permissions": [{ "key": "android.permission.INTERNET" }],
+          "distribution": {
+            "apk": {
+              "url": "Net-Skip-release.apk",
+              "size": 12345,
+              "digest": "sha256:AB12",
+              "signer": "sha256:cd34",
+              "versionCode": 228,
+              "minSdk": 29
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "StanzaRedux",
+      "title": { "en": "Stanza Redux" },
+      "subtitle": { "en": "An e-book reader" },
+      "platforms": {
+        "ios": {
+          "version": "1.4.0",
+          "buildNumber": "19",
+          "bundleIdentifier": "org.appfair.app.Stanza-Redux",
+          "channels": { "appleappstore": { "id": "1639831676", "url": "https://apps.apple.com/app/id1639831676" } }
+        },
+        "android": {
+          "version": "1.4.0",
+          "buildNumber": "19",
+          "applicationId": "org.appfair.app.Stanza_Redux",
+          "distribution": { "apk": { "url": "https://example.org/stanza.apk", "versionCode": 19 } }
+        }
+      }
+    }
+  ]
+}

@@ -32,6 +32,10 @@ impl Cancel {
 
 /// Cancel a download in progress (no effect once the system installer has taken over).
 pub fn cancel() {
+    if crate::market::enabled() {
+        crate::market::cancel();
+        return;
+    }
     Cancel::with(|c| {
         if let Some(p) = c.borrow().as_ref() {
             p.cancel();

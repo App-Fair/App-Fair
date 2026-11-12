@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Install other apps as an alternative app marketplace (MarketplaceKit). A managed
+	     entitlement: Apple grants it to an approved marketplace's App ID, and until then Day
+	     drops it at signing, with a warning, because no provisioning profile grants it. -->
+	<key>com.apple.developer.marketplace.app-installation</key>
+	<true/>
+	<!-- Share the anonymous account and the catalogs' newest versions with the marketplace
+	     extension (marketplace.json). -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.org.appfair.AppFair</string>
+	</array>
+</dict>
+</plist>

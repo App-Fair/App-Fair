@@ -23,13 +23,23 @@ pub struct AppSummary {
     pub version_code: i64,
 }
 
+/// A catalog path resolved against its catalog's base: F-Droid paths are repo-relative, while
+/// App Index and AltStore catalogs store absolute URLs.
+pub fn catalog_url(base: &str, path: &str) -> String {
+    if path.contains("://") {
+        path.to_string()
+    } else {
+        format!("{base}{path}")
+    }
+}
+
 impl AppSummary {
     /// Absolute icon URL, or `None` when the app ships no icon.
     pub fn icon_url(&self) -> Option<String> {
         if self.icon_path.is_empty() {
             None
         } else {
-            Some(format!("{}{}", self.repo_address, self.icon_path))
+            Some(catalog_url(&self.repo_address, &self.icon_path))
         }
     }
 }
@@ -70,6 +80,24 @@ pub struct AppDetail {
     pub whats_new: String,
     pub last_updated: i64,
     pub categories: Vec<String>,
+    /// `android` or `ios`: which installer this listing is for.
+    pub platform: String,
+    /// iOS: the offered build's `CFBundleVersion`.
+    pub bundle_version: String,
+    /// iOS: the oldest system version the offered build runs on.
+    pub min_os: String,
+    /// iOS: the Apple item id MarketplaceKit installs by; `0` when the app is not installable.
+    pub apple_item_id: u64,
+    /// iOS: the offered version's Apple version id, `0` when unknown.
+    pub apple_version_id: u64,
+    /// iOS: the catalog's alternative distribution package URL.
+    pub package_url: String,
+    /// iOS: device capabilities the build requires.
+    pub device_caps: Vec<String>,
+    /// iOS: the age rating rank, `0` when unknown.
+    pub age_rank: i64,
+    /// iOS: the app's page on the marketplace website.
+    pub share_url: String,
 }
 
 impl AppDetail {
@@ -77,19 +105,24 @@ impl AppDetail {
         if self.icon_path.is_empty() {
             None
         } else {
-            Some(format!("{}{}", self.repo_address, self.icon_path))
+            Some(catalog_url(&self.repo_address, &self.icon_path))
         }
     }
 
     pub fn apk_url(&self) -> String {
-        format!("{}{}", self.repo_address, self.apk_path)
+        catalog_url(&self.repo_address, &self.apk_path)
     }
 
     pub fn screenshot_urls(&self) -> Vec<String> {
         self.screenshots
             .iter()
-            .map(|p| format!("{}{}", self.repo_address, p))
+            .map(|p| catalog_url(&self.repo_address, p))
             .collect()
+    }
+
+    /// Whether this listing installs through the iOS marketplace.
+    pub fn is_marketplace(&self) -> bool {
+        self.apple_item_id != 0
     }
 }
 
@@ -105,8 +138,11 @@ pub struct AntiFeature {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RepoRow {
     pub id: u64,
-    /// Base address without the index filename, e.g. `https://f-droid.org/repo`.
+    /// An F-Droid repository's base address without the index filename, e.g.
+    /// `https://f-droid.org/repo`; an App Index or AltStore document's URL.
     pub address: String,
+    /// The catalog's document format (`crate::catalog::format`), empty before its first sync.
+    pub format: String,
     pub name: String,
     /// Repo timestamp of the last successful sync (0 = never synced).
     pub timestamp: i64,
@@ -137,6 +173,18 @@ pub enum SortOrder {
     LastUpdated,
     /// Alphabetical by name, using the device locale's collation (see `crate::collate`).
     Name,
+}
+
+/// The address a catalog URL is stored under: an F-Droid repository's base (the URL without a
+/// trailing `index-v2.json`, or a URL that names no `.json` file at all), or any other JSON
+/// document's own URL. The flag says whether it is an F-Droid repository.
+pub fn catalog_address(url: &str) -> (String, bool) {
+    let (base, file) = split_index_url(url);
+    if file == "index-v2.json" {
+        (base, true)
+    } else {
+        (url.trim().trim_end_matches('/').to_string(), false)
+    }
 }
 
 /// Split an index URL (`https://host/repo/index-v2.json`) into (base address, index filename).

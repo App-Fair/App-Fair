@@ -42,6 +42,7 @@ pub fn install_sheet() -> impl Piece {
                     label(move || {
                         install
                             .get()
+                            .filter(|u| u.total > 1)
                             .map(|u| {
                                 crate::res::str::install_bytes(crate::res::str::InstallBytes {
                                     done: human(u.downloaded),
@@ -60,15 +61,32 @@ pub fn install_sheet() -> impl Piece {
                 .spacing(10.0)
                 .align(HAlign::Leading)
                 .any(),
-                // Installing: the system confirm screen is up.
+                // iOS: the marketplace server is authorizing the install.
+                InstallPhase::Authorizing => column((
+                    spinner(),
+                    label(crate::res::str::install_authorizing())
+                        .font(Font::Subheadline)
+                        .secondary(),
+                ))
+                .spacing(10.0)
+                .align(HAlign::Leading)
+                .any(),
+                // Installing: the system confirm screen is up. On iOS the system finishes the
+                // install on its own, so the sheet can be closed while it does.
                 InstallPhase::Installing => column((
                     spinner(),
                     label(crate::res::str::install_installing())
                         .font(Font::Subheadline)
                         .secondary(),
-                    label(crate::res::str::install_confirm_hint())
-                        .font(Font::Footnote)
-                        .secondary(),
+                    if crate::market::enabled() {
+                        label(crate::res::str::install_confirm_hint_ios())
+                    } else {
+                        label(crate::res::str::install_confirm_hint())
+                    }
+                    .font(Font::Footnote)
+                    .secondary(),
+                    crate::market::enabled()
+                        .then(|| dismiss_button(crate::res::str::btn_close(), false)),
                 ))
                 .spacing(10.0)
                 .align(HAlign::Leading)

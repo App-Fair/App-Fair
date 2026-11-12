@@ -1,5 +1,8 @@
-//! Catalog sync. Fetches the small `entry.json` first: if the timestamp is unchanged (and so is the
-//! locale) the repo is up to date for one tiny request. Otherwise it obtains the new index —
+//! Catalog sync. An App Index or AltStore catalog is one JSON document: it is downloaded, its
+//! format recognized, and imported when its change stamp moved ([`run_document`]).
+//!
+//! An F-Droid repository fetches the small `entry.json` first: if the timestamp is unchanged (and
+//! so is the locale) the repo is up to date for one tiny request. Otherwise it obtains the new index —
 //! preferring an **incremental** JSON Merge Patch diff over a full re-download when `entry.json`
 //! offers one for our stored timestamp — caches the raw index, and applies it to the catalog with
 //! [`catalog::upsert_index`]. Any problem with the diff falls back to a full download.
@@ -14,7 +17,7 @@ use std::time::Duration;
 
 use day::prelude::*;
 
-use crate::catalog::{self, block_on};
+use crate::catalog::{self, block_on, format};
 use crate::fdroid::{Entry, FileRef, IndexV2};
 use crate::net::{self, Progress};
 use crate::state::{self, SyncUi};
@@ -42,7 +45,7 @@ pub fn sync_all_enabled() {
         match repos.await {
             Ok(repos) => {
                 for repo in repos.into_iter().filter(|r| r.enabled) {
-                    start(repo.address, "index-v2.json".to_string());
+                    start(repo.address);
                 }
             }
             Err(e) => error!("sync: {e}"),
@@ -70,7 +73,7 @@ pub fn refresh_mirrors() {
 pub fn check_updates_now(installed: Vec<(String, i64)>) -> i64 {
     let repos = block_on(catalog::read(catalog::repos)).unwrap_or_default();
     for repo in repos.iter().filter(|r| r.enabled) {
-        let _ = run(&repo.address, "index-v2.json");
+        let _ = run_any(&repo.address);
     }
     block_on(catalog::read(move |db| {
         let mut n = 0;
@@ -84,15 +87,36 @@ pub fn check_updates_now(installed: Vec<(String, i64)>) -> i64 {
     .unwrap_or_default()
 }
 
-/// Sync one repository in the background. `address` is the base (no index filename); `index_file`
-/// is the index filename (e.g. `index-v2.json`).
-pub fn start(address: String, index_file: String) {
+/// Sync one catalog in the background. `address` is an F-Droid repository's base (no index
+/// filename) or an App Index / AltStore document's URL (`model::catalog_address`).
+pub fn start(address: String) {
     thread::spawn(move || {
         crate::util::lower_priority();
-        if let Err(e) = run(&address, &index_file) {
+        if let Err(e) = run_any(&address) {
             state::set_sync(SyncUi::Error(e));
         }
     });
+}
+
+/// Sync the catalog at `address` by its format: the one recorded at its last sync, else an
+/// F-Droid repository for a base address and a document for a `.json` URL.
+fn run_any(address: &str) -> Result<(), String> {
+    let owned = address.to_string();
+    let format = block_on(catalog::write(move |db| {
+        let id = catalog::ensure_repo(db, &owned)?;
+        Ok(catalog::repo(db, id)?.map(|r| r.format).unwrap_or_default())
+    }))
+    .map_err(|e| format!("db: {e}"))?;
+    let fdroid = match format.as_str() {
+        format::FDROID => true,
+        "" => !address.ends_with(".json"),
+        _ => false,
+    };
+    if fdroid {
+        run(address, "index-v2.json")
+    } else {
+        run_document(address)
+    }
 }
 
 fn run(address: &str, index_file: &str) -> Result<(), String> {
@@ -105,6 +129,13 @@ fn run(address: &str, index_file: &str) -> Result<(), String> {
     }))
     .map_err(|e| format!("db: {e}"))?
     .ok_or_else(|| "db: the catalog was removed".to_string())?;
+    if repo.format.is_empty() {
+        let id = repo.id;
+        block_on(catalog::write(move |db| {
+            catalog::set_repo_format(db, id, format::FDROID)
+        }))
+        .map_err(|e| format!("db: {e}"))?;
+    }
     let stored = repo.timestamp;
     let locale = locale();
     // A locale change re-picks every localized field; a stored-shape upgrade (a field App Fair
@@ -175,6 +206,67 @@ fn fetch_entry(bases: &[String], fingerprint: &str) -> Result<Option<Entry>, Str
     }
 }
 
+/// Sync an App Index or AltStore document: download it (from its address, then any mirror its
+/// last import named), recognize its format, and import it when its change stamp moved or the
+/// locale or stored shape changed. Neither format carries a reliable per-app change stamp, so a
+/// changed document rewrites every app it lists; documents are small.
+fn run_document(address: &str) -> Result<(), String> {
+    state::set_sync(SyncUi::Checking);
+    let owned = address.to_string();
+    let repo = block_on(catalog::write(move |db| {
+        let id = catalog::ensure_repo(db, &owned)?;
+        catalog::repo(db, id)
+    }))
+    .map_err(|e| format!("db: {e}"))?
+    .ok_or_else(|| "db: the catalog was removed".to_string())?;
+    let locale = locale();
+    let reimport = repo.synced_locale != locale || repo.synced_epoch != catalog::CATALOG_EPOCH;
+
+    state::set_sync(SyncUi::Downloading(None));
+    let progress = Progress::new();
+    let bytes = download_with_progress(&net::bases(address, &repo.mirrors), "", 0, &progress)?;
+    let digest = {
+        let hex = sha256_hex(&bytes);
+        i64::from_str_radix(&hex[..15], 16).unwrap_or(0)
+    };
+    let value: serde_json::Value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("parse: {e}"))?;
+    let (kind, import) = if crate::appindex::sniff(&value) {
+        let doc: crate::appindex::AppIndex =
+            serde_json::from_value(value).map_err(|e| format!("parse: {e}"))?;
+        let import = crate::appindex::import(&doc, repo.id, &locale, catalog::PLATFORM, digest);
+        (format::APPINDEX, import)
+    } else if crate::altstore::sniff(&value) {
+        let source: crate::altstore::Source =
+            serde_json::from_value(value).map_err(|e| format!("parse: {e}"))?;
+        let import = crate::altstore::import(&source, repo.id, catalog::PLATFORM, digest);
+        (format::ALTSTORE, import)
+    } else if value.get("repo").is_some() && value.get("packages").is_some() {
+        return Err(
+            "This is an F-Droid index. Add its repository address, without index-v2.json."
+                .to_string(),
+        );
+    } else {
+        return Err("This is not an App Index, AltStore source, or F-Droid index.".to_string());
+    };
+    if import.stamp == repo.timestamp && repo.format == kind && !reimport {
+        state::set_sync(SyncUi::UpToDate);
+        return Ok(());
+    }
+
+    state::set_sync(SyncUi::Building);
+    let id = repo.id;
+    let locale_owned = locale.clone();
+    let (changed, mirrors) = block_on(catalog::write(move |db| {
+        catalog::set_repo_format(db, id, kind)?;
+        let changed = catalog::import(db, id, import, &locale_owned, true)?;
+        Ok((changed, catalog::mirror_map(db)?))
+    }))
+    .map_err(|e| format!("store: {e}"))?;
+    imported(mirrors, changed);
+    Ok(())
+}
+
 /// Import the index in one catalog transaction. The import records the locale and the
 /// stored-shape epoch it ran under, so a later locale change or App Fair upgrade is detected.
 fn finish(repo_id: u64, index: IndexV2, locale: &str, force: bool) -> Result<(), String> {
@@ -184,13 +276,20 @@ fn finish(repo_id: u64, index: IndexV2, locale: &str, force: bool) -> Result<(),
         Ok((changed, catalog::mirror_map(db)?))
     }))
     .map_err(|e| format!("store: {e}"))?;
+    imported(mirrors, changed);
+    Ok(())
+}
+
+/// After an import commits: refresh the image fallback map, every page that reads the catalog,
+/// and what the iOS marketplace extension knows.
+fn imported(mirrors: Vec<(String, Vec<String>)>, changed: usize) {
     // Refresh the icon loader's mirror-fallback map, so icons and screenshots a metadata-only
     // repo doesn't host fall back to its mirrors (#12). Done before the catalog bump that
     // re-renders the list (and requests icons).
     crate::icons::set_mirror_bases(mirrors);
     state::bump_catalog();
     state::set_sync(SyncUi::Done(changed));
-    Ok(())
+    crate::market::catalog_changed();
 }
 
 /// Get the current index bytes + parsed index. Prefers an incremental diff (`entry.diffs[stored]`)

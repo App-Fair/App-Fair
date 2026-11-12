@@ -75,12 +75,35 @@ fn anti_label(key: &str) -> LocalizedText {
 /// The Settings declaration, installed once in `root()`.
 pub fn preferences() -> Prefs {
     let cleared = Signal::new(false);
+    let mut updates = Group::new("updates", res::str::settings_updates())
+        .icon(res::vectors::tab_updates)
+        .row(
+            rows::toggle(&SYNC_ON_LAUNCH, res::str::pref_sync_title())
+                .caption(res::str::pref_sync_blurb())
+                .id(day::id!(pref_sync)),
+        );
+    // iOS installs only from a tap on the system's button; automatic updates there are the
+    // system's own, fed by the marketplace extension.
+    if !crate::market::enabled() {
+        updates = updates.row(
+            rows::toggle(&AUTO_DOWNLOAD, res::str::pref_auto_title())
+                .caption(res::str::pref_auto_blurb())
+                .id(day::id!(pref_auto_download)),
+        );
+    }
+    // On iOS each install is also authorized by App Fair's marketplace server, which the privacy
+    // note has to say.
+    let privacy = if crate::market::enabled() {
+        res::str::about_privacy_ios()
+    } else {
+        res::str::about_privacy()
+    };
     Preferences::new()
         .title(res::str::tab_settings())
         .about(
             About::from_manifest()
                 .tagline(res::str::about_blurb())
-                .credits(res::str::about_privacy())
+                .credits(privacy)
                 .source(SOURCE_URL)
                 .privacy(PRIVACY_URL),
         )
@@ -93,20 +116,7 @@ pub fn preferences() -> Prefs {
                         .row(rows::custom(repo_list)),
                 ),
         )
-        .group(
-            Group::new("updates", res::str::settings_updates())
-                .icon(res::vectors::tab_updates)
-                .row(
-                    rows::toggle(&SYNC_ON_LAUNCH, res::str::pref_sync_title())
-                        .caption(res::str::pref_sync_blurb())
-                        .id(day::id!(pref_sync)),
-                )
-                .row(
-                    rows::toggle(&AUTO_DOWNLOAD, res::str::pref_auto_title())
-                        .caption(res::str::pref_auto_blurb())
-                        .id(day::id!(pref_auto_download)),
-                ),
-        )
+        .group(updates)
         .group(
             Group::new("filters", res::str::settings_hide())
                 .icon(res::vectors::anti_feature)

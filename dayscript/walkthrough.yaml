@@ -8,38 +8,55 @@
 # The mock catalog ranks nothing, so rows are ordered by recency and their indices are fixed:
 # Organic Maps = 3, Wikipedia = 4. Row ids are `app_row:<catalog>~<package>`, and the bundled
 # catalog is catalog 1.
+#
+# iOS lists what the iOS marketplace installs, so its mock is App Fair's own apps as an App Index
+# (mock/appindex-ios.json), ranked Net Skip = 0, Fair Games = 1, Stanza = 2; the steps that name
+# a package come in an Android form (`skip_on: [ios-uikit]`) and an iOS one
+# (`only_on: [ios-uikit]`).
 flow:
   # The mock catalog seeds just after first paint; wait until a known app row is on screen so every
   # shot is of a fully-populated store (identifiers are locale-independent, so en and fr match).
   - wait_for: { id: tabs }
-  - wait_for: { id: "app_row:1~app.organicmaps" }
+  - wait_for: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
   - wait_idle:
   - screenshot: 01-browse
 
   # Search narrows the list as you type, matching names, summaries and package ids.
-  - input: { id: search, text: "wiki" }
-  - wait_for: { id: "app_row:1~org.wikipedia" }
-  - assert_hidden: { id: "app_row:1~app.organicmaps" }
+  - input: { id: search, text: "wiki", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.wikipedia", skip_on: [ios-uikit] }
+  - assert_hidden: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - input: { id: search, text: "stanza", only_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Stanza-Redux", only_on: [ios-uikit] }
+  - assert_hidden: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
   - input: { id: search, text: "" }
-  - wait_for: { id: "app_row:1~app.organicmaps" }
+  - wait_for: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
 
-  # An app's detail page: real icon, description, permissions, the pinned signing key, and Install.
-  - select: { id: app_list, index: 3 }
+  # An app's detail page: real icon, description, permissions, the pinned signing key, and Install
+  # (on iOS, MarketplaceKit's own install button).
+  - select: { id: app_list, index: 3, skip_on: [ios-uikit] }
+  - select: { id: app_list, index: 0, only_on: [ios-uikit] }
   - wait_for: { id: detail_install }
   - wait_idle:
   - screenshot: 02-detail
   - nav_back:
   - wait_idle:
 
-  # Browse by category — the picker filters the list to a single category (7 = Internet).
+  # Browse by category — the picker filters the list to a single category (7 = Internet; on iOS
+  # 3 = Reading, last in English and French alike).
   - wait_for: { id: category_picker }
-  - select: { id: category_picker, index: 7 }
-  - wait_for: { id: "app_row:1~org.wikipedia" }
-  - assert_hidden: { id: "app_row:1~app.organicmaps" }
+  - select: { id: category_picker, index: 7, skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.wikipedia", skip_on: [ios-uikit] }
+  - assert_hidden: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - select: { id: category_picker, index: 3, only_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Stanza-Redux", only_on: [ios-uikit] }
+  - assert_hidden: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
   - wait_idle:
   - screenshot: 03-category
   - select: { id: category_picker, index: 0 }
-  - wait_for: { id: "app_row:1~app.organicmaps" }
+  - wait_for: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
 
   # Settings: when App Fair checks for updates, and the catalogs it syncs.
   - navigate: { route: settings/updates }
@@ -49,21 +66,25 @@ flow:
   - navigate: { route: settings/catalogs }
   - wait_for: { id: "repo_enabled:1" }
 
-  # Hiding an anti-feature takes the apps that declare it out of browsing, and back.
+  # Hiding an anti-feature takes the apps that declare it out of browsing, and back. (App Fair's
+  # own apps, iOS's mock, declare none.)
   - navigate: { route: settings/filters }
   - wait_for: { id: "anti:Tracking" }
   - toggle: { id: "anti:Tracking" }
   - navigate: { route: catalogs }
-  - wait_for: { id: "app_row:1~app.organicmaps" }
-  - assert_hidden: { id: "app_row:1~org.wikipedia" }
+  - wait_for: { id: "app_row:1~app.organicmaps", skip_on: [ios-uikit] }
+  - assert_hidden: { id: "app_row:1~org.wikipedia", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Net-Skip", only_on: [ios-uikit] }
   - navigate: { route: settings/filters }
   - wait_for: { id: "anti:Tracking" }
   - toggle: { id: "anti:Tracking" }
 
-  # A second detail — Wikipedia (index 4) — for variety in the gallery.
+  # A second detail — Wikipedia (index 4); on iOS Fair Games (index 1) — for variety in the gallery.
   - navigate: { route: catalogs }
-  - wait_for: { id: "app_row:1~org.wikipedia" }
-  - select: { id: app_list, index: 4 }
+  - wait_for: { id: "app_row:1~org.wikipedia", skip_on: [ios-uikit] }
+  - wait_for: { id: "app_row:1~org.appfair.app.Faire-Games", only_on: [ios-uikit] }
+  - select: { id: app_list, index: 4, skip_on: [ios-uikit] }
+  - select: { id: app_list, index: 1, only_on: [ios-uikit] }
   - wait_for: { id: detail_install }
   - wait_idle:
   - screenshot: 05-wikipedia

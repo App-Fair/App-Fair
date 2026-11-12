@@ -45,6 +45,12 @@ sha2 = "0.10"
 # — e.g. Swedish sorts "ä"/"ö" after "z". Bundled SQLite has no ICU collation to defer to.
 icu_collator = "2"
 icu_locale_core = "2"
+# iOS: install through Apple's MarketplaceKit as an alternative app marketplace (src/market.rs).
+# A Swift bridge, since MarketplaceKit has no Objective-C surface; off iOS it answers Unsupported.
+app-fair-marketplace = { path = "marketplace" }
+# Hosts MarketplaceKit's ActionButton in Day pages. A direct dependency so `day build` turns on
+# its UIKit renderer for this app.
+day-piece-swiftui = "0.*"
 
 # Reach the app's JVM + Context on Android (with_env / dcall_static) for the install bridge.
 [target.'cfg(target_os = "android")'.dependencies]
@@ -69,3 +75,6 @@ day-build = "0.*"
 
 
 [workspace]
+# The MarketplaceKit bridge the iOS build installs apps through, and the reference signer for the
+# install verification tokens App Fair's marketplace server issues (docs/marketplace-server.md).
+members = ["marketplace", "marketplace-token"]

@@ -52,6 +52,8 @@ pub struct InstallUi {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum InstallPhase {
+    /// iOS: the marketplace server is being asked to authorize the install.
+    Authorizing,
     Downloading,
     Installing,
     Success,
@@ -174,7 +176,7 @@ pub fn install_active() -> bool {
     install_signal().get_untracked().is_some_and(|u| {
         matches!(
             u.phase,
-            InstallPhase::Downloading | InstallPhase::Installing
+            InstallPhase::Authorizing | InstallPhase::Downloading | InstallPhase::Installing
         )
     })
 }
@@ -264,6 +266,42 @@ pub fn search_results() -> Signal<Vec<AppSummary>> {
 /// run again on every catalog change, so a sync's newer versions show up.
 pub fn installed_updates() -> Signal<Vec<(AppSummary, i64)>> {
     let version = catalog_version();
+    if crate::market::enabled() {
+        // iOS: the apps this marketplace installed, by Apple item id, matched to their listings.
+        let library = crate::market::library();
+        return snapshot(
+            Vec::new(),
+            move || (version.get(), library.get().generation),
+            move |_| {
+                let installed: Vec<(u64, i64)> = library
+                    .get_untracked()
+                    .apps
+                    .values()
+                    .filter_map(|a| {
+                        Some((a.id, crate::market::installed_code(a.installed.as_ref()?)))
+                    })
+                    .collect();
+                let found = catalog::read(move |db| {
+                    let items: Vec<u64> = installed.iter().map(|(i, _)| *i).collect();
+                    let pkgs = catalog::packages_for_items(db, &items)?;
+                    let mut out = Vec::new();
+                    for (item, code) in installed {
+                        if let Some(pkg) = pkgs.get(&item)
+                            && let Some(s) = catalog::summary_by_pkg(db, pkg)?
+                        {
+                            out.push((s, code));
+                        }
+                    }
+                    Ok(out)
+                });
+                async move {
+                    let found = found.await?;
+                    remember_names(found.iter().map(|(s, _)| s));
+                    Ok(found)
+                }
+            },
+        );
+    }
     snapshot(
         Vec::new(),
         move || version.get(),
@@ -491,6 +529,6 @@ pub fn on_native_install_status(status: i32, message: Option<String>) {
         InstallPhase::Cancelled => {
             UPDATE_QUEUE.lock().unwrap().clear();
         }
-        InstallPhase::Downloading | InstallPhase::Installing => {}
+        InstallPhase::Authorizing | InstallPhase::Downloading | InstallPhase::Installing => {}
     }
 }

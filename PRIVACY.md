@@ -1,14 +1,16 @@
 # App Fair — Privacy Policy
 
-_Last updated: 2026-07-21_
+_Last updated: 2026-11-11_
 
-App Fair is an open app store for F-Droid–compatible catalogs. It is designed to collect nothing
-about you.
+App Fair is an open app store for App Index, AltStore, and F-Droid catalogs. It is designed to
+collect nothing about you.
 
 ## What App Fair collects
 
 **Nothing.** App Fair has no accounts, no sign-in, no analytics, no advertising, and no crash or
-usage reporting. We do not collect, transmit, or sell any personal or device data.
+usage reporting. We do not collect, transmit, or sell any personal or device data. The one
+exception is on iOS, where installs carry an anonymous identifier, as described under
+[Installing apps on iOS](#installing-apps-on-ios).
 
 ## What leaves your device
 
@@ -34,6 +36,17 @@ through App Fair are stored **only** on your device. Removing the app removes th
 App Fair downloads an app's package from its catalog, verifies it against the catalog's published
 checksum, and hands it to Android's standard package installer, which asks you to confirm every
 installation. App Fair never installs anything silently.
+
+## Installing apps on iOS
+
+On iOS, App Fair is an alternative app marketplace and Apple's system installs every app. When you
+tap Install, Update, or Update all, App Fair asks **App Fair's marketplace server** to authorize the
+install, and iOS then downloads the app from that server. Those requests carry an **anonymous
+identifier** that App Fair creates on your device the first time it runs: a random value, kept in
+the device's keychain so it survives reinstalling App Fair, never synced to your other devices, and
+never linked to your name, email, or Apple Account. The server uses it only to tell a first
+download from a later one, as Apple requires every marketplace to report. iOS's own automatic
+updates send the same identifier to the same server.
 
 ## Permissions
 

@@ -293,8 +293,45 @@ pub fn permission_info(name: &str) -> (String, String) {
     (tidy_permission(name), String::new())
 }
 
-/// A readable fallback label: `android.permission.ACCESS_FINE_LOCATION` → `Access fine location`.
+/// A readable fallback label: `android.permission.ACCESS_FINE_LOCATION` → `Access fine location`,
+/// and an iOS usage-description key `NSPhotoLibraryAddUsageDescription` → `Photo library add`.
 pub fn tidy_permission(name: &str) -> String {
+    if let Some(core) = name
+        .strip_prefix("NS")
+        .and_then(|n| n.strip_suffix("UsageDescription"))
+        .filter(|c| !c.is_empty())
+    {
+        // Split the CamelCase into words, keeping an acronym (`ID`, `NFC`) whole.
+        let chars: Vec<char> = core.chars().collect();
+        let mut words: Vec<String> = Vec::new();
+        for (i, &c) in chars.iter().enumerate() {
+            let prev = i.checked_sub(1).map(|j| chars[j]);
+            let next = chars.get(i + 1).copied();
+            let boundary = i > 0
+                && c.is_uppercase()
+                && (prev.is_some_and(char::is_lowercase)
+                    || (prev.is_some_and(char::is_uppercase)
+                        && next.is_some_and(char::is_lowercase)));
+            if boundary || words.is_empty() {
+                words.push(String::new());
+            }
+            words.last_mut().unwrap().push(c);
+        }
+        let out = words
+            .iter()
+            .enumerate()
+            .map(|(i, w)| {
+                let acronym = w.chars().count() > 1 && w.chars().all(char::is_uppercase);
+                if i == 0 || acronym {
+                    w.clone()
+                } else {
+                    w.to_lowercase()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
+        return out;
+    }
     let short = name.rsplit('.').next().unwrap_or(name);
     let mut words = short.split('_').map(|w| w.to_ascii_lowercase());
     let mut out = String::new();
@@ -402,4 +439,27 @@ pub extern "system" fn Java_org_appfair_app_appfair_UpdateWorker_nativeCheckUpda
         Ok(crate::sync::check_updates_now(list) as i32)
     })
     .resolve::<day::android::jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tidy_permission;
+
+    #[test]
+    fn tidies_android_and_ios_permission_names() {
+        assert_eq!(
+            tidy_permission("android.permission.ACCESS_FINE_LOCATION"),
+            "Access fine location"
+        );
+        assert_eq!(tidy_permission("NSCameraUsageDescription"), "Camera");
+        assert_eq!(
+            tidy_permission("NSPhotoLibraryAddUsageDescription"),
+            "Photo library add"
+        );
+        assert_eq!(
+            tidy_permission("NSLocationWhenInUseUsageDescription"),
+            "Location when in use"
+        );
+        assert_eq!(tidy_permission("NSFaceIDUsageDescription"), "Face ID");
+    }
 }

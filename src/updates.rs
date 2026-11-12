@@ -69,6 +69,36 @@ fn update_all(rows: Vec<Installed>) {
     });
 }
 
+/// iOS "Update all": a batch MarketplaceKit button over the pending updates, once their full
+/// records come back from the catalog.
+fn market_update_all(pending: Vec<(u64, String)>) -> AnyPiece {
+    let details = state::snapshot(
+        Vec::new(),
+        || (),
+        move |_| {
+            let pending = pending.clone();
+            catalog::read(move |db| {
+                let mut out: Vec<AppDetail> = Vec::new();
+                for (repo_id, pkg) in pending {
+                    out.extend(catalog::detail(db, repo_id, &pkg)?);
+                }
+                Ok(out)
+            })
+        },
+    );
+    keyed(
+        move || {
+            let apps = details.get();
+            (!apps.is_empty()).then_some(apps)
+        },
+        |apps| {
+            crate::market::update_all_button(apps, crate::res::str::btn_update_all().format())
+                .id(day::id!(update_all))
+        },
+    )
+    .any()
+}
+
 pub fn updates_page(path: Signal<Vec<Nav>>) -> impl Piece {
     let installed = state::installed_updates();
     let rows = move || sorted(installed.get());
@@ -79,7 +109,11 @@ pub fn updates_page(path: Signal<Vec<Nav>>) -> impl Piece {
         move || installed.get(),
         move |_, _| {
             let rows = sorted(installed.get_untracked());
-            if settings::AUTO_DOWNLOAD.get_untracked()
+            // iOS installs only from a tap on the system's own button, so there is nothing for
+            // App Fair to start by itself; the marketplace extension feeds the system's
+            // automatic updates instead.
+            if !crate::market::enabled()
+                && settings::AUTO_DOWNLOAD.get_untracked()
                 && !AUTO_FIRED.load(Ordering::Relaxed)
                 && !state::install_active()
                 && rows.iter().any(Installed::updatable)
@@ -107,15 +141,32 @@ pub fn updates_page(path: Signal<Vec<Nav>>) -> impl Piece {
     .id(day::id!(updates_summary));
 
     // "Update all" appears only while updates are pending; it installs them one after another.
-    let update_all_button = when(
-        move || rows().iter().any(Installed::updatable),
-        move || {
-            button(crate::res::str::btn_update_all())
-                .prominent()
-                .action(move || update_all(rows()))
-                .id(day::id!(update_all))
-        },
-    );
+    // On iOS it is MarketplaceKit's batch button: one tap, one system confirmation, every update.
+    let update_all_button = if crate::market::enabled() {
+        keyed(
+            move || {
+                let pending: Vec<(u64, String)> = rows()
+                    .into_iter()
+                    .filter(Installed::updatable)
+                    .map(|i| (i.app.repo_id, i.app.pkg))
+                    .collect();
+                (!pending.is_empty()).then_some(pending)
+            },
+            |pending| market_update_all(pending.clone()),
+        )
+        .any()
+    } else {
+        when(
+            move || rows().iter().any(Installed::updatable),
+            move || {
+                button(crate::res::str::btn_update_all())
+                    .prominent()
+                    .action(move || update_all(rows()))
+                    .id(day::id!(update_all))
+            },
+        )
+        .any()
+    };
 
     let header = row((summary, update_all_button))
         .align(VAlign::Center)

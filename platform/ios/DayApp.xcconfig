@@ -10,7 +10,12 @@ MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 
 // The oldest iOS the app runs on. `day build` raises it when a Day piece needs a newer one.
-IPHONEOS_DEPLOYMENT_TARGET = 15.0
+// 17.4 is MarketplaceKit's first release, which App Fair installs apps through.
+IPHONEOS_DEPLOYMENT_TARGET = 17.4
+
+// The alternative app marketplace entitlement and the App Group shared with the marketplace
+// extension. Day drops whatever the provisioning profile does not grant, with a warning.
+CODE_SIGN_ENTITLEMENTS = $(DAY_PROJECT_ROOT)/platform/ios/AppFair.entitlements
 // 1 = iPhone, 2 = iPad.
 TARGETED_DEVICE_FAMILY = 1,2
 

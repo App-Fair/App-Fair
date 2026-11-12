@@ -1,0 +1,83 @@
+{
+  "name": "Example PAL Source",
+  "subtitle": "Apps for testing App Fair's AltStore reader",
+  "website": "https://example.com",
+  "featuredApps": ["com.example.notes"],
+  "apps": [
+    {
+      "name": "Notes",
+      "bundleIdentifier": "com.example.notes",
+      "marketplaceID": "6476788646",
+      "developerName": "Example Developer",
+      "subtitle": "Plain notes",
+      "localizedDescription": "Notes that stay on your device.",
+      "iconURL": "https://example.com/icon.png",
+      "tintColor": "#F54F32",
+      "category": "utilities",
+      "screenshots": {
+        "iphone": [
+          "https://example.com/shots/1.png",
+          { "imageURL": "https://example.com/shots/2.png", "width": 1179, "height": 2556 }
+        ],
+        "ipad": [{ "imageURL": "https://example.com/shots/ipad.png", "width": 2048, "height": 2732 }]
+      },
+      "versions": [
+        {
+          "version": "1.2",
+          "buildVersion": "12",
+          "marketingVersion": "1.2 (Beta)",
+          "date": "2026-05-01",
+          "localizedDescription": "Faster sync.",
+          "downloadURL": "https://example.com/adp/6476788646/manifest.json",
+          "size": 805788,
+          "minOSVersion": "17.4"
+        },
+        {
+          "version": "1.1",
+          "buildVersion": "11",
+          "date": "2026-04-01",
+          "downloadURL": "https://example.com/adp/6476788646-old/manifest.json",
+          "size": 800000
+        }
+      ],
+      "appPermissions": {
+        "entitlements": ["com.apple.security.application-groups"],
+        "privacy": {
+          "NSCameraUsageDescription": "Attach photos to notes.",
+          "NSMicrophoneUsageDescription": "Dictate notes."
+        }
+      }
+    },
+    {
+      "name": "Net Skip",
+      "bundleIdentifier": "org.appfair.app.Net-Skip",
+      "marketplaceID": 1640618584,
+      "developerName": "App Fair Project",
+      "localizedDescription": "A browser.",
+      "iconURL": "https://appfair.net/icons/net-skip.png",
+      "version": "2.0",
+      "versionDate": "2026-03-01T10:00:00Z",
+      "downloadURL": "https://appfair.net/adp/1640618584/",
+      "size": 9284057,
+      "appPermissions": {
+        "privacy": [{ "name": "LocationWhenInUse", "usageDescription": "Nearby pages." }]
+      }
+    },
+    {
+      "name": "Sideloaded",
+      "bundleIdentifier": "com.example.classic",
+      "developerName": "Example Developer",
+      "localizedDescription": "An AltStore Classic app.",
+      "iconURL": "https://example.com/classic.png",
+      "versions": [
+        {
+          "version": "1.0",
+          "buildVersion": "1",
+          "date": "2026-01-01",
+          "downloadURL": "https://example.com/classic.ipa",
+          "size": 1000
+        }
+      ]
+    }
+  ]
+}

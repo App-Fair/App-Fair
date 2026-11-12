@@ -33,6 +33,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Required of every alternative app marketplace: whether it sells digital goods or
+	     services (which would need Core Technology Commission reporting). App Fair sells none. -->
+	<key>MKSellsDigitalGoods</key>
+	<false/>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIApplicationSceneManifest</key>

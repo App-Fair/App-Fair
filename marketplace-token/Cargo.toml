@@ -1,0 +1,25 @@
+[package]
+name = "app-fair-marketplace-token"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MPL-2.0"
+description = "Reference signer for the install verification tokens App Fair's marketplace server issues"
+publish = false
+
+# Server-side reference code, not part of the app: the marketplace server holds App Fair's
+# alternative distribution private key and signs one token per install (docs/marketplace-server.md).
+# Kept in this repository so the claims the app's server contract names are tested against the
+# shape Apple documents ("Supplying an install verification token").
+
+[dependencies]
+# ES256 = ECDSA over P-256 with SHA-256, the only algorithm MarketplaceKit accepts.
+p256 = { version = "0.14", features = ["ecdsa", "pem", "pkcs8", "alloc"] }
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[[bin]]
+name = "appfair-install-token"
+path = "src/bin/appfair-install-token.rs"

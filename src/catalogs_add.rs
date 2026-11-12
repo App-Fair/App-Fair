@@ -1,11 +1,12 @@
-//! The "add a catalog" page (pushed from the Catalogs tab). Enter a F-Droid-compatible Index V2
-//! URL (with its `?fingerprint=`), or pick a known repository, then App Fair adds it and syncs it.
+//! The "add a catalog" page (pushed from the Catalogs tab). Enter the URL of an App Index
+//! document, an AltStore source, or an F-Droid-compatible Index V2 repository (with its
+//! `?fingerprint=`), or pick a known repository, then App Fair adds it and syncs it.
 //! Catalog URLs must be `https://` (or a `.onion`), and the fingerprint is pinned so the repo's
 //! signed index can be verified (#1, #4).
 
 use day::prelude::*;
 
-use crate::model::split_index_url;
+use crate::model::catalog_address;
 use crate::{catalog, state, sync};
 
 /// The error line's red, which holds its contrast on light and dark grounds.
@@ -63,19 +64,22 @@ fn add(raw: &str, error: Signal<String>) {
         error.set(crate::res::str::add_error_insecure().format());
         return;
     }
-    let (base, file) = split_index_url(&clean);
-    let address = base.clone();
+    let (address, fdroid) = catalog_address(&clean);
+    let stored = address.clone();
     let fingerprint = fingerprint.to_lowercase();
     state::write(move |db| {
-        let id = catalog::ensure_repo(db, &address)?;
+        let id = catalog::ensure_repo(db, &stored)?;
+        if fdroid {
+            catalog::set_repo_format(db, id, catalog::format::FDROID)?;
+        }
         if fingerprint.is_empty() {
             Ok(())
         } else {
             catalog::set_repo_fingerprint(db, id, &fingerprint)
         }
     });
-    // The worker answers in order, so the sync reads the pinned fingerprint written above.
-    sync::start(base, file);
+    // The worker answers in order, so the sync reads the format and fingerprint written above.
+    sync::start(address);
     nav_back();
 }
 
@@ -83,8 +87,10 @@ pub fn add_catalog_page() -> impl Piece {
     let url = Signal::new(String::new());
     let error = Signal::new(String::new());
 
+    // The known repositories are F-Droid's, which list Android apps only.
     let presets: Vec<_> = PRESETS
         .iter()
+        .filter(|_| catalog::PLATFORM == "android")
         .map(|(name, u)| {
             let u = *u;
             button(*name)
@@ -114,7 +120,7 @@ pub fn add_catalog_page() -> impl Piece {
                 .prominent()
                 .action(move || add(&url.get_untracked(), error))
                 .id(day::id!(catalog_confirm)),
-            label(crate::res::str::add_known()).font(Font::Headline),
+            (!presets.is_empty()).then(|| label(crate::res::str::add_known()).font(Font::Headline)),
             column(presets).spacing(Space::S).align(HAlign::Leading),
         ))
         .spacing(14.0)

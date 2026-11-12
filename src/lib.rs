@@ -1,6 +1,8 @@
-//! App Fair — a small F-Droid-style app store built with [Day](https://daybrite.dev). It syncs
-//! F-Droid-compatible Index V2 catalogs into an on-device store, lets you browse, search, and
-//! switch between catalogs, and downloads/installs/updates/launches Android APKs.
+//! App Fair — an open app store built with [Day](https://daybrite.dev). It syncs App Index,
+//! AltStore, and F-Droid Index V2 catalogs into an on-device store and lets you browse, search,
+//! and switch between them. On Android it downloads, installs, updates, and launches APKs through
+//! the system package installer; on iOS it is an alternative app marketplace that installs,
+//! updates, opens, and deletes apps through Apple's MarketplaceKit (`market`).
 //!
 //! `root()` is a three-tab shell (Catalogs, Updates, Settings). Catalogs and Updates are each a
 //! navigation stack that pushes an app detail page; an install overlay floats above everything.
@@ -8,6 +10,8 @@
 use day::prelude::*;
 use day_piece_settings::prelude::Prefs;
 
+mod altstore;
+mod appindex;
 mod cache;
 mod catalog;
 mod catalogs_add;
@@ -17,6 +21,7 @@ mod fdroid;
 mod icons;
 mod install;
 mod install_sheet;
+mod market;
 mod mock;
 mod model;
 mod net;
@@ -110,6 +115,8 @@ pub fn root() -> impl Piece {
     // Delete any staged APK left by a previous session (interrupted download or an install whose
     // result never arrived). Safe now — no install is in flight.
     std::thread::spawn(install::prune_stale_apks);
+    // iOS: follow the MarketplaceKit library (installs, updates, deletions) from the start.
+    market::start();
     if mock::enabled() {
         // Offline, deterministic mode (local testing + CI screenshots): seed the bundled catalog
         // instead of syncing from the network, and skip background update checks.

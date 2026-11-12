@@ -57,6 +57,8 @@ btn_install = Install
 btn_update = Update
 btn_launch = Launch
 btn_uninstall = Uninstall
+btn_open = Open
+btn_delete = Delete
 app_not_found = App not found
 unknown_author = Unknown author
 version_line = Version { $version }
@@ -65,6 +67,9 @@ compatible_yes = Compatible with your device
 compatible_needs = Needs Android { $release } — newer than this device
 incompatible_title = { $name } isn't compatible
 incompatible_body = This app needs Android { $need }. Your device runs Android { $have }, so it can't be installed.
+compatible_needs_ios = Needs iOS { $release } or hardware this device lacks
+incompatible_body_ios = This app needs iOS { $need } or later, or hardware this device doesn't have, so it can't be installed here.
+market_region = Apple doesn't allow alternative app marketplaces in your region, so App Fair can't install apps on this device.
 section_screenshots = Screenshots
 section_whats_new = What's new
 section_permissions = Permissions
@@ -88,13 +93,15 @@ install_downloading = Downloading…
 install_bytes = { $done } / { $total }
 install_installing = Installing…
 install_confirm_hint = Confirm the install when Android asks.
+install_authorizing = Authorizing the install…
+install_confirm_hint_ios = Confirm the install when iOS asks.
 install_done = Installed
 install_cancelled = Cancelled
 install_failed = Install failed
 
 # Settings tab
 settings_catalogs = Catalogs
-settings_catalogs_blurb = Enable, disable, or remove your F-Droid-compatible catalogs.
+settings_catalogs_blurb = Enable, disable, or remove your catalogs.
 settings_updates = Updates
 pref_sync_title = Check for updates on launch
 pref_sync_blurb = Sync catalogs each time App Fair opens.
@@ -107,8 +114,9 @@ btn_remove = Remove
 settings_hide = Hide apps with…
 settings_storage = Storage
 settings_hide_blurb = Leave out apps that declare these anti-features when you browse and search.
-about_blurb = An open app store for F-Droid-compatible catalogs, built with Day.
+about_blurb = An open app store for App Index, AltStore, and F-Droid catalogs, built with Day.
 about_privacy = App Fair talks only to the catalogs you add. There are no accounts and no analytics — update checks and downloads go straight to those repositories, and nothing about what you browse or install leaves your device.
+about_privacy_ios = App Fair talks only to the catalogs you add and, when you install or update an app, to App Fair's marketplace server, which authorizes each install for iOS. That server sees an anonymous identifier made on this device, never your name or Apple Account. There are no accounts and no analytics.
 repo_row_meta = { $address }  ·  { $count } apps
 
 # Anti-feature filter labels
@@ -124,8 +132,8 @@ af_nosourcesince = No source since
 
 # Add-catalog page
 add_title = Add a catalog
-add_blurb = Enter a F-Droid-compatible Index V2 URL (with its ?fingerprint=), or pick a known repository.
-add_placeholder = https://example.org/fdroid/repo?fingerprint=…
+add_blurb = Enter the address of an App Index (appindex.json), an AltStore source, or an F-Droid repository (with its ?fingerprint=), or pick a known repository.
+add_placeholder = https://example.org/appindex.json
 add_error_insecure = Catalog URLs must use https:// (or a .onion address).
 btn_add_catalog = Add catalog
 add_known = Known repositories

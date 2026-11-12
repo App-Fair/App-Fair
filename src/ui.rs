@@ -13,7 +13,8 @@ use crate::{Nav, catalog, push_nav, sync};
 /// The empty icon square while an icon loads: a mid grey that reads on light and dark rows.
 pub(crate) const PLACEHOLDER: Color = Color::rgba(0.5, 0.5, 0.55, 0.18);
 /// App Fair's blue, which holds its contrast on light and dark grounds.
-pub(crate) const ACCENT: Color = Color::hex(0x3D_7B_F0);
+pub(crate) const ACCENT_HEX: u32 = 0x3D_7B_F0;
+pub(crate) const ACCENT: Color = Color::hex(ACCENT_HEX);
 
 pub fn catalogs_page(path: Signal<Vec<Nav>>) -> impl Piece {
     let query = state::query();

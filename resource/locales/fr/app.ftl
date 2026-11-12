@@ -56,6 +56,8 @@ btn_install = Installer
 btn_update = Mettre à jour
 btn_launch = Ouvrir
 btn_uninstall = Désinstaller
+btn_open = Ouvrir
+btn_delete = Supprimer
 app_not_found = Appli introuvable
 unknown_author = Auteur inconnu
 version_line = Version { $version }
@@ -64,6 +66,9 @@ compatible_yes = Compatible avec votre appareil
 compatible_needs = Nécessite Android { $release } — plus récent que cet appareil
 incompatible_title = { $name } n'est pas compatible
 incompatible_body = Cette appli nécessite Android { $need }. Votre appareil utilise Android { $have }, elle ne peut donc pas être installée.
+compatible_needs_ios = Nécessite iOS { $release } ou un matériel absent de cet appareil
+incompatible_body_ios = Cette appli nécessite iOS { $need } ou une version ultérieure, ou un matériel que cet appareil n'a pas, elle ne peut donc pas être installée ici.
+market_region = Apple n'autorise pas les boutiques d'applis alternatives dans votre région : App Fair ne peut donc pas installer d'applis sur cet appareil.
 section_screenshots = Captures d'écran
 section_whats_new = Nouveautés
 section_permissions = Autorisations
@@ -87,13 +92,15 @@ install_downloading = Téléchargement…
 install_bytes = { $done } / { $total }
 install_installing = Installation…
 install_confirm_hint = Confirmez l'installation lorsque Android le demande.
+install_authorizing = Autorisation de l'installation…
+install_confirm_hint_ios = Confirmez l'installation quand iOS le demande.
 install_done = Installé
 install_cancelled = Annulé
 install_failed = Échec de l'installation
 
 # Onglet Réglages
 settings_catalogs = Catalogues
-settings_catalogs_blurb = Activez, désactivez ou supprimez vos catalogues compatibles F-Droid.
+settings_catalogs_blurb = Activez, désactivez ou supprimez vos catalogues.
 settings_updates = Mises à jour
 pref_sync_title = Vérifier les mises à jour au lancement
 pref_sync_blurb = Synchroniser les catalogues à chaque ouverture d'App Fair.
@@ -106,8 +113,9 @@ btn_remove = Supprimer
 settings_hide = Masquer les applis avec…
 settings_storage = Stockage
 settings_hide_blurb = Exclure de la navigation et de la recherche les applis déclarant ces anti-fonctionnalités.
-about_blurb = Une boutique d'applis ouverte pour les catalogues compatibles F-Droid, conçue avec Day.
+about_blurb = Une boutique d'applis ouverte pour les catalogues App Index, AltStore et F-Droid, conçue avec Day.
 about_privacy = App Fair ne communique qu'avec les catalogues que vous ajoutez. Aucun compte, aucune analyse — les vérifications de mises à jour et les téléchargements vont directement à ces dépôts, et rien de ce que vous consultez ou installez ne quitte votre appareil.
+about_privacy_ios = App Fair ne communique qu'avec les catalogues que vous ajoutez et, quand vous installez ou mettez à jour une appli, avec le serveur de la boutique App Fair, qui autorise chaque installation auprès d'iOS. Ce serveur ne voit qu'un identifiant anonyme créé sur cet appareil, jamais votre nom ni votre compte Apple. Aucun compte, aucune analyse.
 repo_row_meta = { $address }  ·  { $count } applis
 
 # Libellés du filtre d'anti-fonctionnalités
@@ -123,8 +131,8 @@ af_nosourcesince = Sans source depuis
 
 # Page d'ajout de catalogue
 add_title = Ajouter un catalogue
-add_blurb = Saisissez une URL Index V2 compatible F-Droid (avec son ?fingerprint=), ou choisissez un dépôt connu.
-add_placeholder = https://exemple.org/fdroid/repo?fingerprint=…
+add_blurb = Saisissez l'adresse d'un App Index (appindex.json), d'une source AltStore ou d'un dépôt F-Droid (avec son ?fingerprint=), ou choisissez un dépôt connu.
+add_placeholder = https://exemple.org/appindex.json
 add_error_insecure = Les URL de catalogue doivent utiliser https:// (ou une adresse .onion).
 btn_add_catalog = Ajouter le catalogue
 add_known = Dépôts connus
