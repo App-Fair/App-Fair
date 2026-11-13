@@ -137,7 +137,7 @@ let token = signer.sign(&claims, unix_now)?;
 `manifest.json` (byte for byte as App Store Connect delivered it), `signature`,
 `variant/<publicId>.ipa`, `delta/<publicId>.ipa`. Nothing is stored there: every file is a release
 asset of the app's own GitHub repository, attached by the App Fair Publisher
-(`appfair/appfair-apps`, `adp.yml`) as `adp-<appleVersionId>-<path with / as ->`, and each request
+(`appfair/appfair-apps`, `adp.yml`) as `x-adp-<appleVersionId>-<path with / as ->`, and each request
 is answered with a redirect to it (or the bytes streamed through, should iOS refuse a redirect).
 
 A catalog's `adp.url` is used as is when it is on the marketplace domain (`appfair.cloud` or a
